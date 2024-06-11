@@ -1,0 +1,16 @@
+#如果你不知道数据库对应的配置，那么只需要改host,port,database,user,passwd即可
+Mysql:
+  Enable: false
+  host: 127.0.0.1
+  port: 3306
+  database: ChunkWorld
+  user: Adear
+  passwd: '123456'
+  ssl: false
+  HikariCP: true
+#redis数据库配置
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+World: "/home"

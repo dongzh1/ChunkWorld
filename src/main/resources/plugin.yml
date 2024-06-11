@@ -1,0 +1,14 @@
+main: # inject
+name: # inject
+version: ${version}
+authors:
+  - dongzh1
+  - xbaimiao
+api-version: "1.20"
+folia-supported: true
+update-info: # inject
+depend-list: # inject
+depend: [ WorldEdit ]
+relocate: # inject
+kotlin-version: # inject
+#world用于大厅，新建一个世界和地狱末地相连成资源
