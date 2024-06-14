@@ -50,7 +50,6 @@ object WorldEdit {
      * @param chunk 区块
      * @param targetChunk 目标区块
      */
-
     fun copyChunk(chunk:Chunk,targetChunk:Chunk){
         val world = BukkitAdapter.adapt(chunk.world)
         val targetWorld = BukkitAdapter.adapt(targetChunk.world)
@@ -71,7 +70,12 @@ object WorldEdit {
             Operations.complete(copy)
         }
         // 创建编辑会话并将剪贴板内容粘贴到目标区域
-
+    }
+    /**
+     * 获取指定区块的群系信息，和创世神插件的/biomeinfo指令一样
+     */
+    fun getBiomes(chunk:Chunk):List<String>{
+        return emptyList()
     }
 
     /**
