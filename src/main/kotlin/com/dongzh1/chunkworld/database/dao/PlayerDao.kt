@@ -31,4 +31,10 @@ class PlayerDao {
     @DatabaseField(dataType = DataType.SHORT, columnName = "world_status")
     var worldStatus: Short = 0
 
+    fun x() = spawn.split(",")[0].toDouble()
+    fun y() = spawn.split(",")[1].toDouble()
+    fun z() = spawn.split(",")[2].toDouble()
+    fun yaw() = spawn.split(",")[3].toFloat()
+    fun pitch() = spawn.split(",")[4].toFloat()
+
 }

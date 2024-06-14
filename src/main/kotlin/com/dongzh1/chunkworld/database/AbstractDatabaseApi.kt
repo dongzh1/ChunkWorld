@@ -24,29 +24,29 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
     fun chunkGet(id: Int):List<Pair<Int,Int>> =
         chunkDao.queryForEq("playerID",id).map { it.x to it.z }
     //根据玩家名字获取玩家信任的玩家
-    fun trustGet(name: String):List<String> =
-        trustDao.queryForEq("playerID",playerGet(name)!!.id).map { playerDao.queryForId(it.trustedPlayerID).name }
+    fun trustGet(name: String):List<UUID> =
+        trustDao.queryForEq("playerID",playerGet(name)!!.id).map { playerDao.queryForId(it.trustedPlayerID).uuid }
     //根据playerDao表id获取玩家信任的玩家
-    fun trustGet(id: Int):List<String> =
-        trustDao.queryForEq("playerID",id).map { playerDao.queryForId(it.trustedPlayerID).name }
+    fun trustGet(id: Int):List<UUID> =
+        trustDao.queryForEq("playerID",id).map { playerDao.queryForId(it.trustedPlayerID).uuid }
     //根据玩家名字获取信任玩家的玩家
-    fun beTrustGet(name: String):List<String> =
-        trustDao.queryForEq("trustedPlayerID",playerGet(name)!!.id).map { playerDao.queryForId(it.playerID).name }
+    fun beTrustGet(name: String):List<UUID> =
+        trustDao.queryForEq("trustedPlayerID",playerGet(name)!!.id).map { playerDao.queryForId(it.playerID).uuid }
     //根据playerDao表id获取信任玩家的玩家
-    fun beTrustGet(id: Int):List<String> =
-        trustDao.queryForEq("trustedPlayerID",id).map { playerDao.queryForId(it.playerID).name }
+    fun beTrustGet(id: Int):List<UUID> =
+        trustDao.queryForEq("trustedPlayerID",id).map { playerDao.queryForId(it.playerID).uuid }
     //根据玩家名字获取玩家拉黑的玩家
-    fun banGet(name: String):List<String> =
-        banDao.queryForEq("playerID",playerGet(name)!!.id).map { playerDao.queryForId(it.bannedPlayerID).name }
+    fun banGet(name: String):List<UUID> =
+        banDao.queryForEq("playerID",playerGet(name)!!.id).map { playerDao.queryForId(it.bannedPlayerID).uuid }
     //根据playerDao表id获取玩家拉黑的玩家
-    fun banGet(id: Int):List<String> =
-        banDao.queryForEq("playerID",id).map { playerDao.queryForId(it.bannedPlayerID).name }
+    fun banGet(id: Int):List<UUID> =
+        banDao.queryForEq("playerID",id).map { playerDao.queryForId(it.bannedPlayerID).uuid }
     //根据玩家名字获取拉黑玩家的玩家
-    fun beBanGet(name: String):List<String> =
-        banDao.queryForEq("bannedPlayerID",playerGet(name)!!.id).map { playerDao.queryForId(it.playerID).name }
+    fun beBanGet(name: String):List<UUID> =
+        banDao.queryForEq("bannedPlayerID",playerGet(name)!!.id).map { playerDao.queryForId(it.playerID).uuid }
     //根据playerDao表id获取拉黑玩家的玩家
-    fun beBanGet(id: Int):List<String> =
-        banDao.queryForEq("bannedPlayerID",id).map { playerDao.queryForId(it.playerID).name }
+    fun beBanGet(id: Int):List<UUID> =
+        banDao.queryForEq("bannedPlayerID",id).map { playerDao.queryForId(it.playerID).uuid }
     //创建玩家信息
     fun playerCreate(dao: PlayerDao) =
         playerDao.create(dao)

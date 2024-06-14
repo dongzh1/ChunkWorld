@@ -1,39 +1,89 @@
 package com.dongzh1.chunkworld
 
+import com.dongzh1.chunkworld.basic.ConfirmExpandGui
 import com.dongzh1.chunkworld.database.dao.ChunkDao
 import com.dongzh1.chunkworld.database.dao.PlayerDao
 import com.xbaimiao.easylib.skedule.SynchronizationContext
-import com.xbaimiao.easylib.skedule.asyncDispatcher
 import com.xbaimiao.easylib.skedule.launchCoroutine
-import com.xbaimiao.easylib.util.submit
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
 import org.bukkit.Bukkit
-import org.bukkit.Location
-import org.bukkit.NamespacedKey
-import org.bukkit.Server
+import org.bukkit.GameMode
+import org.bukkit.Material
+import org.bukkit.World
 import org.bukkit.WorldCreator
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.player.AsyncPlayerPreLoginEvent
-import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerLoginEvent
+import org.bukkit.event.block.Action
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityTargetEvent
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent
+import org.bukkit.event.hanging.HangingBreakByEntityEvent
+import org.bukkit.event.player.*
+import org.bukkit.event.vehicle.VehicleDamageEvent
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import java.io.File
-import java.io.IOException
 import java.time.Duration
-import javax.xml.crypto.Data
-import kotlin.coroutines.suspendCoroutine
+import java.util.UUID
+import kotlin.math.max
 
 object Listener:Listener {
-    private val playerDaoMap = mutableMapOf<Player,PlayerDao>()
+    private val playerDaoMap = mutableMapOf<String,PlayerDao>()
     private val chunkMap = mutableMapOf<Player,List<Pair<Int,Int>>>()
-    private val trustMap = mutableMapOf<Player,List<String>>()
-    private val banMap = mutableMapOf<Player,List<String>>()
-    private val beTrustMap = mutableMapOf<Player,List<String>>()
-    private val beBanMap = mutableMapOf<Player,List<String>>()
+    private val trustMap = mutableMapOf<Player,List<UUID>>()
+    private val banMap = mutableMapOf<Player,List<UUID>>()
+    private val beTrustMap = mutableMapOf<Player,List<UUID>>()
+    private val beBanMap = mutableMapOf<Player,List<UUID>>()
+    private val uuidToNameMap = mutableMapOf<UUID,String>()
+    fun setPlayerDaoMap(name:String, playerDao: PlayerDao) = playerDaoMap.set(name,playerDao)
+    fun getPlayerDaoMap(name:String):PlayerDao? = playerDaoMap[name]
+    fun getPlayerDaoMap(uuid: UUID):PlayerDao? = playerDaoMap[uuidToNameMap[uuid]]
+    fun setChunkMap(player: Player,chunk:List<Pair<Int,Int>>) = chunkMap.set(player,chunk)
+    fun getChunkMap(player: Player):List<Pair<Int,Int>>? = chunkMap[player]
+    fun setTrustMap(player: Player,trust:List<UUID>) = trustMap.set(player,trust)
+    fun getTrustMap(player: Player):List<UUID>? = trustMap[player]
+    fun setBanMap(player: Player,ban:List<UUID>) = banMap.set(player,ban)
+    fun getBanMap(player: Player):List<UUID>? = banMap[player]
+    fun setBeTrustMap(player: Player,beTrust:List<UUID>) = beTrustMap.set(player,beTrust)
+    fun getBeTrustMap(player: Player):List<UUID>? = beTrustMap[player]
+    fun setBeBanMap(player: Player,beBan:List<UUID>) = beBanMap.set(player,beBan)
+    fun getBeBanMap(player: Player):List<UUID>? = beBanMap[player]
+    fun setUUIDtoName(uuid: UUID,name: String) = uuidToNameMap.set(uuid,name)
+    fun getUUIDtoName(uuid: UUID) = uuidToNameMap[uuid]
+    //删除所有的关于这个玩家存在内存的信息
+    fun removeData(player: Player) {
+        playerDaoMap.remove(player.name)
+        uuidToNameMap.remove(player.uniqueId)
+        chunkMap.remove(player)
+        trustMap.remove(player)
+        banMap.remove(player)
+        beTrustMap.remove(player)
+        beBanMap.remove(player)
+    }
+    //仅删除playerDao和uuidToName
+    fun removePlayerData(uuid: UUID) {
+        val name = uuidToNameMap[uuid]
+        if (name != null) {
+            playerDaoMap.remove(name)
+            uuidToNameMap.remove(uuid)
+        }
+    }
+    //获取这个玩家是否被世界主人信任
+    private fun isBeTrust(player: Player,world:World):Boolean {
+        val uuid = UUID.fromString(world.name.split("/").last())
+        return beTrustMap[player]!!.contains(uuid)
+    }
+    //这个玩家是否在被信任的世界，包括自己的世界
+    private fun isInTrustedWorld(player: Player):Boolean{
+        //如果是自己的世界，那也没啥好取消的
+        if (player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${player.uniqueId}") return true
+        //信任也不需要取消
+        if (isBeTrust(player,player.world)) return true
+        return false
+    }
 
     @EventHandler
     fun onLogin(e:PlayerLoginEvent) {
@@ -67,12 +117,14 @@ object Listener:Listener {
                     error("世界文件复制失败")
                 }
             }
-            //确定世界文件是否存在
-            if (!File(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}/poi/r.0.0.mca").exists()) {
-                //根据玩家进度进行处理
-                switchContext(SynchronizationContext.SYNC)
-                e.player.kick(Component.text("世界文件不完整或第一次加载未正确保留，请联系管理员"))
-                error("世界文件不完整")
+            //后面的加载确定世界文件是否成功存在
+            if (playerDao != null){
+                if (!File(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}/poi/r.0.0.mca").exists()) {
+                    //根据玩家进度进行处理
+                    switchContext(SynchronizationContext.SYNC)
+                    e.player.kick(Component.text("世界文件不完整或第一次加载未正确保留，请联系管理员"))
+                    error("世界文件不完整")
+                }
             }
             //现在是同步
             switchContext(SynchronizationContext.SYNC)
@@ -109,19 +161,25 @@ object Listener:Listener {
                     //区块数据存入数据库
                     ChunkWorld.db.chunkCreate(chunkDao)
                     //新建了玩家数据，可以存入内存
-                    playerDaoMap[e.player] = playerDao
-                    chunkMap[e.player] = listOf(chunkDao.x to chunkDao.z)
-                    trustMap[e.player] = emptyList()
-                    banMap[e.player] = emptyList()
-                    beTrustMap[e.player] = emptyList()
-                    beBanMap[e.player] = emptyList()
-                    //这里是第一次加载，通过异步复制屏障到占领的区块边缘
-
+                    setPlayerDaoMap(e.player.name,playerDao)
+                    setUUIDtoName(e.player.uniqueId,e.player.name)
+                    setChunkMap(e.player, listOf(chunkDao.x to chunkDao.z))
+                    setTrustMap(e.player,emptyList())
+                    setBanMap(e.player, emptyList())
+                    setBeTrustMap(e.player, emptyList())
+                    setBeBanMap(e.player, emptyList())
+                    //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
+                    WorldEdit.setBarrier(listOf(chunkDao.x to chunkDao.z),chunkDao.x to chunkDao.z,world)
+                    //现在是同步
+                    switchContext(SynchronizationContext.SYNC)
+                    //存储世界
+                    world.save()
                 } else {
                     //有玩家数据,导入所有到内存
-                    playerDaoMap[e.player] = playerDao
-                    chunkMap[e.player] = ChunkWorld.db.chunkGet(playerDao.id)
-                    if (chunkMap[e.player]!!.isEmpty()) {
+                    setPlayerDaoMap(e.player.name,playerDao)
+                    setUUIDtoName(e.player.uniqueId,e.player.name)
+                    val chunList = ChunkWorld.db.chunkGet(playerDao.id)
+                    if (chunList.isEmpty()){
                         //说明玩家上次区块信息没存入，重新存
                         val chunkDao = ChunkDao().apply {
                             playerID = playerDao.id
@@ -131,7 +189,11 @@ object Listener:Listener {
                         //区块数据存入数据库
                         ChunkWorld.db.chunkCreate(chunkDao)
                         chunkMap[e.player] = listOf(chunkDao.x to chunkDao.z)
+                        //创建第一次的屏障
+                        //现在是同步
+                        WorldEdit.setBarrier(listOf(chunkDao.x to chunkDao.z),chunkDao.x to chunkDao.z,world)
                     }
+                    SynchronizationContext.ASYNC
                     trustMap[e.player] = ChunkWorld.db.trustGet(playerDao.id)
                     banMap[e.player] = ChunkWorld.db.banGet(playerDao.id)
                     beTrustMap[e.player] = ChunkWorld.db.beTrustGet(playerDao.id)
@@ -143,13 +205,197 @@ object Listener:Listener {
                 e.player.teleportAsync(world.spawnLocation).thenAccept {
                     e.player.clearTitle()
                     e.player.removePotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS)
-                    //存储世界
-                    world.save()
+                }
+            }
+        }
+    }
+    @EventHandler
+    fun onInteract(e:PlayerInteractEvent){
+        //如果是拓展物品，也要取消
+        if (e.item?.type == Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)){
+            if (e.item!!.itemMeta.hasCustomModelData()){
+                //物品有模型值，看能不能和配置的模型值相等
+                if (e.item!!.itemMeta.customModelData == ChunkWorld.inst.config.getInt("item.customModelData")){
+                    //是指定物品，取消
+                    e.isCancelled = true
+                    return
+                }
+            }else{
+                //物品没有模型值，看配置的模型值是不是-1
+                if (ChunkWorld.inst.config.getInt("item.customModelData") == -1){
+                    //配置不需要模型值，手上物品也没有模型值,说明是指定物品，取消
+                    e.isCancelled = true
+                    return
                 }
             }
         }
 
-    }
+        //玩家不在家园世界就不管
+        if (!e.player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
 
+        //吃东西也没事
+        if (e.hasItem() && e.item!!.type.isEdible){
+            if (e.action == Action.RIGHT_CLICK_BLOCK || e.action == Action.RIGHT_CLICK_AIR){
+                return
+            }
+        }
+
+        //在家园世界和屏障交互
+        if (e.clickedBlock?.type == org.bukkit.Material.BARRIER){
+            //如果是世界主人，可以拓展世界
+            e.isCancelled = true
+            if (e.player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"){
+                ConfirmExpandGui(e.player,max(e.clickedBlock!!.chunk.x,e.clickedBlock!!.chunk.z)).build()
+            }
+            return
+        }
+
+        if (e.player.isOp) return
+        //不是自己的世界或被信任的世界就取消
+        e.isCancelled = !isInTrustedWorld(e.player)
+    }
+    @EventHandler
+    //阻止玩家被实体锁定目标
+    fun target(e: EntityTargetLivingEntityEvent) {
+        //不是玩家世界就不管
+        if (!e.entity.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
+        //如果目标是玩家且不是成员，则取消事件
+        if (e.target is Player) {
+            val target = e.target as Player
+            //不是自己的世界或被信任的世界就取消
+            e.isCancelled = !isInTrustedWorld(target)
+        }
+    }
+    @EventHandler
+    //阻止访客玩家被实体伤害以及玩家伤害实体
+    fun damage(e: EntityDamageByEntityEvent) {
+        //不是玩家世界就不管
+        if (!e.entity.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
+        //如果攻击者是玩家且不是成员，则取消事件
+        if (e.damager is Player) {
+            val damager = e.damager as Player
+            if (damager.isOp)
+                return
+            //不是自己的世界或被信任的世界就取消
+            e.isCancelled = !isInTrustedWorld(damager)
+        }
+        //如果被攻击者是玩家且不是成员，则取消事件
+        if (e.entity is Player) {
+            val entity = e.entity as Player
+            //不是自己的世界或被信任的世界就取消
+            e.isCancelled = !isInTrustedWorld(entity)
+        }
+    }
+    @EventHandler
+    //不和实体交互
+    fun rightClickEntity(e: PlayerInteractEntityEvent) {
+        if (e.player.isOp)
+            return
+        //不是玩家世界就不管
+        if (!e.player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
+        //不是自己的世界或被信任的世界就取消
+        e.isCancelled = !isInTrustedWorld(e.player)
+    }
+    @EventHandler
+    //不和悬挂实体交互
+    fun hangEntity(e:HangingBreakByEntityEvent){
+        if (e.remover is Player) {
+            val player = e.remover as Player
+            if (player.isOp)
+                return
+            //不是玩家世界就不管
+            if (!player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
+            //不是自己的世界或被信任的世界就取消
+            e.isCancelled = !isInTrustedWorld(player)
+        }
+    }
+    /**
+     * 禁止载具被游客打击
+     */
+    @EventHandler
+    fun vehicle(e: VehicleDamageEvent){
+        if (e.attacker is Player) {
+            val player = e.attacker as Player
+            if (player.isOp)
+                return
+            //不是玩家世界就不管
+            if (!player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
+            //不是自己的世界或被信任的世界就取消
+            e.isCancelled = !isInTrustedWorld(player)
+        }
+    }
+    /**传送到家园世界的事件，统一先阻止、判断权限后放行，并根据情况给与玩家相关权限,到没有权限的世界变为冒险模式
+     * @param e 玩家传送事件
+     */
+    @EventHandler
+    fun worldTp(e: PlayerTeleportEvent) {
+        //传送不涉及世界切换就返回
+        if (e.to.world == e.from.world) return
+        val player = e.player
+        //不是玩家世界就不管
+        if (!e.to.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
+        //如果是自己的世界，那也没啥好取消的
+        if (e.to.world.name == ChunkWorld.inst.config.getString("World")!!+"/${player.uniqueId}") return
+        //现在确定是别人的家园世界,获取对应世界玩家的uuid
+        val uuid = UUID.fromString(e.to.world.name.split("/").last())
+        val playerDao = getPlayerDaoMap(uuid)
+        //查看是否能传送
+        when(playerDao!!.worldStatus) {
+            //玩家世界开放
+            0.toShort() -> {
+                //如果是黑名单，也无法进入
+                val beBanList = getBeBanMap(player)!!
+                if (beBanList.contains(playerDao.uuid)) {
+                    //取消传送任务
+                    player.sendMessage("§c此玩家禁止你访问")
+                    e.isCancelled = true
+                    return
+                }
+            }
+            1.toShort() -> {
+                //部分开放，看看是否被信任
+                val beTrustList = getBeTrustMap(player)!!
+                if (!beTrustList.contains(playerDao.uuid)) {
+                    //取消传送任务
+                    player.sendMessage("§c此玩家只允许信任的玩家访问")
+                    e.isCancelled = true
+                    return
+                }
+            }
+            //玩家世界仅对自己开放
+            2.toShort() -> {
+                //取消传送任务
+                player.sendMessage("§c此玩家禁止他人访问")
+                e.isCancelled = true
+                return
+            }
+        }
+    }
+    /**
+    * 玩家切换世界的时候注意游戏模式
+    */
+    @EventHandler
+    fun worldChange(e: PlayerChangedWorldEvent){
+        //world世界和家园世界为冒险模式，主人和信任者除外
+        val player = e.player
+        //玩家去主城，就改为冒险模式
+        if (player.world.name == "world"){
+            player.gameMode = GameMode.ADVENTURE
+            return
+        }
+        //不是玩家世界就生存
+        if (!player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) {
+            player.gameMode = GameMode.SURVIVAL
+            return
+        }
+        //现在肯定是家园世界，玩家去家园世界，是被信任的就生存，不是就冒险
+        if (!isInTrustedWorld(player)) {
+            player.gameMode = GameMode.ADVENTURE
+            return
+        }else {
+            player.gameMode = GameMode.SURVIVAL
+            return
+        }
+    }
 
 }

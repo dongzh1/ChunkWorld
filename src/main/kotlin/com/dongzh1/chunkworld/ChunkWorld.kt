@@ -5,6 +5,7 @@ import com.dongzh1.chunkworld.command.Command
 import com.dongzh1.chunkworld.database.AbstractDatabaseApi
 import com.dongzh1.chunkworld.database.MysqlDatabaseApi
 import com.dongzh1.chunkworld.database.SQLiteDatabaseApi
+import com.fastasyncworldedit.core.Fawe
 import com.google.common.io.ByteStreams
 import com.xbaimiao.easylib.EasyPlugin
 import com.xbaimiao.easylib.command.registerCommand
@@ -15,7 +16,10 @@ import com.xbaimiao.easylib.util.plugin
 import com.xbaimiao.easylib.util.registerListener
 import com.xbaimiao.easylib.util.submit
 import org.bukkit.Bukkit
+import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.plugin.messaging.PluginMessageListener
 import java.io.File
 
