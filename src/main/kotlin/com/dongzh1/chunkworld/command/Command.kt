@@ -12,6 +12,9 @@ import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.CommandBody
 import com.xbaimiao.easylib.util.ECommandHeader
+import com.xbaimiao.easylib.util.submit
+import org.bukkit.Bukkit
+import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.WorldCreator
 import org.bukkit.command.CommandSender
@@ -27,7 +30,17 @@ object Command {
         description = "重载插件"
         permission = "chunkworld.reload"
         exec {
-            WorldEdit.copyChunk(sender.chunk, sender.world.getChunkAt(sender.chunk.x + 1, sender.chunk.z + 1))
+            sender.sendMessage("全程开始：${System.currentTimeMillis()}")
+            Bukkit.getWorld(ChunkWorld.inst.config.getString("Resource")!!)!!.getChunkAtAsync(
+                (0..500).random(),
+                (0..500).random()
+            ).thenAccept {
+                sender.sendMessage("粘贴开始：${System.currentTimeMillis()}")
+                //已经加载好了区块再粘贴，测试是否会卡服
+                WorldEdit.copyChunk(it,sender.chunk)
+                sender.sendMessage("粘贴结束：${System.currentTimeMillis()}")
+            }
+            sender.sendMessage("顺序结束：${System.currentTimeMillis()}")
         }
     }
     @CommandBody

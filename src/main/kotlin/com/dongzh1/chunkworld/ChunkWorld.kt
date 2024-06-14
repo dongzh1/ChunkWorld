@@ -17,6 +17,7 @@ import com.xbaimiao.easylib.util.registerListener
 import com.xbaimiao.easylib.util.submit
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.WorldCreator
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
@@ -35,6 +36,7 @@ class ChunkWorld : EasyPlugin() {
 
         Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f插件已加载")
         saveDefaultConfig()
+        config
         //释放世界文件
         loadResource()
         //赋值数据库
@@ -47,10 +49,8 @@ class ChunkWorld : EasyPlugin() {
         registerCommand(Command)
         //注册监听
         registerListener(Listener)
-        submit(period = 1) {
-            if (Bukkit.isTickingWorlds())
-            Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f服务器正在运行")
-        }
+        //加载世界，用于获取区块
+        Bukkit.createWorld(WorldCreator("${config.getString("Resource")}"))
 
 
     }

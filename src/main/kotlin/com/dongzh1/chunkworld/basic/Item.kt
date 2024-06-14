@@ -4,6 +4,7 @@ import com.cryptomorin.xseries.XItemStack
 import com.cryptomorin.xseries.XMaterial
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
+import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
 
 object Item {

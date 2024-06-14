@@ -6,12 +6,19 @@ import com.xbaimiao.easylib.util.hasItem
 import com.xbaimiao.easylib.util.submit
 import com.xbaimiao.easylib.util.takeItem
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.title.Title
+import net.kyori.adventure.title.Title.Times
+import org.bukkit.Chunk
 import org.bukkit.Material
 import org.bukkit.entity.Player
+import java.time.Duration
+import kotlin.math.max
 
-class ConfirmExpandGui(private val p: Player,private val chunkLevel :Int) {
+class ConfirmExpandGui(private val p: Player,private val chunk: Chunk) {
     fun build() {
+        p.sendMessage("${chunk.x} ${chunk.z}")
         val basic = PaperBasic(p, Component.text("生成区块"))
+        val chunkLevel = max(chunk.x,chunk.z)
         //设置菜单大小为行
         basic.rows(4)
         basic.set(13,Item.build(Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)
@@ -25,13 +32,16 @@ class ConfirmExpandGui(private val p: Player,private val chunkLevel :Int) {
             event.isCancelled = true
         }
         basic.onClick(30){
+            p.closeInventory()
             if (deduct()){
                 //扣除成功
-                ExpandGui(p,chunkLevel).build()
+                p.showTitle(
+                    Title.title(Component.text("§a请稍等"), Component.text("§f正在对区块进行排列组合"),
+                    Times.times(Duration.ofSeconds(1), Duration.ofMinutes(1), Duration.ofSeconds(1))))
+                ExpandGui(p,chunk).build()
             }else{
                 //没有足够的物品
                 p.sendMessage("§c你没有足够的物品")
-                p.closeInventory()
             }
         }
         basic.onClick(32){
@@ -44,6 +54,7 @@ class ConfirmExpandGui(private val p: Player,private val chunkLevel :Int) {
      * 从玩家背包判断是否有足够的指定物品，如果有就扣除并返回true,没有就返回false
      */
     private fun deduct():Boolean{
+        val chunkLevel = max(chunk.x,chunk.z)
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)
         return if (ChunkWorld.inst.config.getInt("item.customModelData") == -1) {
             //判断有没有那么多

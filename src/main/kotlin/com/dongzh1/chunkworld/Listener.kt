@@ -168,10 +168,12 @@ object Listener:Listener {
                     setBanMap(e.player, emptyList())
                     setBeTrustMap(e.player, emptyList())
                     setBeBanMap(e.player, emptyList())
-                    //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
-                    WorldEdit.setBarrier(listOf(chunkDao.x to chunkDao.z),chunkDao.x to chunkDao.z,world)
                     //现在是同步
                     switchContext(SynchronizationContext.SYNC)
+                    e.player.sendMessage("${System.currentTimeMillis()}")
+                    //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
+                    WorldEdit.setBarrier(listOf(chunkDao.x to chunkDao.z),chunkDao.x to chunkDao.z,world)
+                    e.player.sendMessage("${System.currentTimeMillis()}")
                     //存储世界
                     world.save()
                 } else {
@@ -191,6 +193,7 @@ object Listener:Listener {
                         chunkMap[e.player] = listOf(chunkDao.x to chunkDao.z)
                         //创建第一次的屏障
                         //现在是同步
+                        switchContext(SynchronizationContext.SYNC)
                         WorldEdit.setBarrier(listOf(chunkDao.x to chunkDao.z),chunkDao.x to chunkDao.z,world)
                     }
                     SynchronizationContext.ASYNC
@@ -245,7 +248,7 @@ object Listener:Listener {
             //如果是世界主人，可以拓展世界
             e.isCancelled = true
             if (e.player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"){
-                ConfirmExpandGui(e.player,max(e.clickedBlock!!.chunk.x,e.clickedBlock!!.chunk.z)).build()
+                ConfirmExpandGui(e.player, e.clickedBlock!!.chunk).build()
             }
             return
         }

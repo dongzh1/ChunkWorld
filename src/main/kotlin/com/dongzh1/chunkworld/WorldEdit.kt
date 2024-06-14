@@ -1,6 +1,7 @@
 package com.dongzh1.chunkworld
 
 import com.fastasyncworldedit.core.Fawe
+import com.fastasyncworldedit.core.util.TaskManager
 import com.sk89q.worldedit.EditSession
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.bukkit.BukkitAdapter
@@ -10,6 +11,7 @@ import com.sk89q.worldedit.function.operation.ForwardExtentCopy
 import com.sk89q.worldedit.function.operation.Operations
 import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.regions.CuboidRegion
+import com.sk89q.worldedit.regions.CylinderRegion
 import com.sk89q.worldedit.regions.Region
 import com.sk89q.worldedit.regions.selector.CuboidRegionSelector
 import com.sk89q.worldedit.session.request.RequestSelection
@@ -30,19 +32,19 @@ object WorldEdit {
      * @param blockType 指定的方块
      */
     private fun setBlock(pos1:Location, pos2:Location, blockType: BlockType) {
-        val world = BukkitAdapter.adapt(pos1.world)
-        val region = CuboidRegion(
-            BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
-            BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
-        )
+        TaskManager.taskManager().async {
+            val world = BukkitAdapter.adapt(pos1.world)
+            val region = CuboidRegion(
+                BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
+                BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
+            )
+            // 创建一个编辑会话
+            val editSession: EditSession = WorldEdit.getInstance().newEditSessionBuilder().world(world).fastMode(true).build()
 
-        // 创建一个编辑会话
-        val editSession: EditSession = WorldEdit.getInstance().newEditSessionBuilder().world(world).build()
-
-
-        // 替换区域内的所有方块为指定方块
-        editSession.use { session ->
-            session.setBlocks(region as Region, blockType.defaultState)
+            // 替换区域内的所有方块为指定方块
+            editSession.use { session ->
+                session.setBlocks(region as Region, blockType.defaultState)
+            }
         }
     }
     /**
@@ -51,31 +53,32 @@ object WorldEdit {
      * @param targetChunk 目标区块
      */
     fun copyChunk(chunk:Chunk,targetChunk:Chunk){
-        val world = BukkitAdapter.adapt(chunk.world)
-        val targetWorld = BukkitAdapter.adapt(targetChunk.world)
-        val region = CuboidRegion(
-            BlockVector3.at(chunk.x*16, -64, chunk.z*16),
-            BlockVector3.at(chunk.x*16+15, 320, chunk.z*16+15)
-        )
-        val targetRegion = CuboidRegion(
-            BlockVector3.at(targetChunk.x*16, -64, targetChunk.z*16),
-            BlockVector3.at(targetChunk.x*16+15, 320, targetChunk.z*16+15)
-        )
-        val clipboard = BlockArrayClipboard(region)
-        // 创建编辑会话并复制区域内容到剪贴板
-        WorldEdit.getInstance().newEditSession(world).use { editSession ->
-            val copy = ForwardExtentCopy(editSession, region,region.minimumPoint,clipboard, targetRegion.minimumPoint)
-            copy.isCopyingEntities = true
-            copy.isCopyingBiomes = false
-            Operations.complete(copy)
+        TaskManager.taskManager().async{
+            val weWorld = BukkitAdapter.adapt(chunk.world)
+            val region = CuboidRegion(
+                weWorld,
+                BlockVector3.at(chunk.x*16,-64,chunk.z*16),
+                BlockVector3.at(chunk.x*16+15,320,chunk.z*16+15)
+            )
+            val clipboard = BlockArrayClipboard(region)
+            region.compile(clipboard,weWorld)
+            clipboard.paste(
+                BukkitAdapter.adapt(targetChunk.world),
+                BlockVector3.at(targetChunk.x*16,-64,targetChunk.z*16),
+                false,
+                true,
+                null
+            )
         }
-        // 创建编辑会话并将剪贴板内容粘贴到目标区域
     }
-    /**
-     * 获取指定区块的群系信息，和创世神插件的/biomeinfo指令一样
-     */
-    fun getBiomes(chunk:Chunk):List<String>{
-        return emptyList()
+    private fun Region.compile(clipboard: BlockArrayClipboard,world: com.sk89q.worldedit.world.World){
+        WorldEdit.getInstance().newEditSession(world).use {
+            it.disableHistory()
+            val forward = ForwardExtentCopy(it,this,clipboard,clipboard.minimumPoint)
+            forward.isCopyingBiomes = true
+            forward.isCopyingEntities = true
+            Operations.complete(forward)
+        }
     }
 
     /**
