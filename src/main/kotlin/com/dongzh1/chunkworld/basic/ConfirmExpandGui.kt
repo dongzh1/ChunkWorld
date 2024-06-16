@@ -12,13 +12,13 @@ import org.bukkit.Chunk
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import java.time.Duration
+import kotlin.math.abs
 import kotlin.math.max
 
 class ConfirmExpandGui(private val p: Player,private val chunk: Chunk) {
     fun build() {
-        p.sendMessage("${chunk.x} ${chunk.z}")
         val basic = PaperBasic(p, Component.text("生成区块"))
-        val chunkLevel = max(chunk.x,chunk.z)
+        val chunkLevel = max(abs(chunk.x), abs(chunk.z))
         //设置菜单大小为行
         basic.rows(4)
         basic.set(13,Item.build(Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)

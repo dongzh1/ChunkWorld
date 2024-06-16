@@ -3,6 +3,7 @@ package com.dongzh1.chunkworld.basic
 import com.cryptomorin.xseries.XItemStack
 import com.cryptomorin.xseries.XMaterial
 import net.kyori.adventure.text.Component
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
@@ -19,6 +20,16 @@ object Item {
     fun build(material: Material,number: Int,displayName: String?,lore: List<String>?,customModelData : Int):ItemStack{
         val item = ItemStack(material,number)
         val meta = item.itemMeta
+        if (displayName != null) meta.displayName(Component.text(displayName))
+        if (lore != null) meta.lore(lore.map { Component.text(it) })
+        if (customModelData != -1) meta.setCustomModelData(customModelData)
+        item.itemMeta = meta
+        return item
+    }
+    fun head(name: String, displayName: String?, lore: List<String>?, customModelData: Int):ItemStack{
+        val item = ItemStack(Material.PLAYER_HEAD)
+        val meta = item.itemMeta as org.bukkit.inventory.meta.SkullMeta
+        meta.setOwningPlayer(Bukkit.getOfflinePlayer(name))
         if (displayName != null) meta.displayName(Component.text(displayName))
         if (lore != null) meta.lore(lore.map { Component.text(it) })
         if (customModelData != -1) meta.setCustomModelData(customModelData)

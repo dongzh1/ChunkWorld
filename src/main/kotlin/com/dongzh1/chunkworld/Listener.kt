@@ -32,25 +32,26 @@ import kotlin.math.max
 
 object Listener:Listener {
     private val playerDaoMap = mutableMapOf<String,PlayerDao>()
-    private val chunkMap = mutableMapOf<Player,List<Pair<Int,Int>>>()
-    private val trustMap = mutableMapOf<Player,List<UUID>>()
-    private val banMap = mutableMapOf<Player,List<UUID>>()
-    private val beTrustMap = mutableMapOf<Player,List<UUID>>()
-    private val beBanMap = mutableMapOf<Player,List<UUID>>()
+    private val chunkMap = mutableMapOf<Player,Set<Pair<Int,Int>>>()
+    private val trustMap = mutableMapOf<Player,Set<UUID>>()
+    private val banMap = mutableMapOf<Player,Set<UUID>>()
     private val uuidToNameMap = mutableMapOf<UUID,String>()
     fun setPlayerDaoMap(name:String, playerDao: PlayerDao) = playerDaoMap.set(name,playerDao)
     fun getPlayerDaoMap(name:String):PlayerDao? = playerDaoMap[name]
+    fun getPlayerDaosMap():List<PlayerDao> = playerDaoMap.values.toList()
     fun getPlayerDaoMap(uuid: UUID):PlayerDao? = playerDaoMap[uuidToNameMap[uuid]]
-    fun setChunkMap(player: Player,chunk:List<Pair<Int,Int>>) = chunkMap.set(player,chunk)
-    fun getChunkMap(player: Player):List<Pair<Int,Int>>? = chunkMap[player]
-    fun setTrustMap(player: Player,trust:List<UUID>) = trustMap.set(player,trust)
-    fun getTrustMap(player: Player):List<UUID>? = trustMap[player]
-    fun setBanMap(player: Player,ban:List<UUID>) = banMap.set(player,ban)
-    fun getBanMap(player: Player):List<UUID>? = banMap[player]
-    fun setBeTrustMap(player: Player,beTrust:List<UUID>) = beTrustMap.set(player,beTrust)
-    fun getBeTrustMap(player: Player):List<UUID>? = beTrustMap[player]
-    fun setBeBanMap(player: Player,beBan:List<UUID>) = beBanMap.set(player,beBan)
-    fun getBeBanMap(player: Player):List<UUID>? = beBanMap[player]
+    fun setChunkMap(player: Player,chunk:Set<Pair<Int,Int>>) = chunkMap.set(player,chunk)
+    fun addChunkMap(player: Player,chunk:Pair<Int,Int>) {
+        val list = chunkMap[player]!!.toMutableSet()
+        list.add(chunk)
+        chunkMap[player] = list
+    }
+    fun getChunkMap(player: Player):Set<Pair<Int,Int>>? = chunkMap[player]
+    fun getChunkMaps():Map<Player,Set<Pair<Int,Int>>> = chunkMap
+    fun setTrustMap(player: Player,trust:Set<UUID>) = trustMap.set(player,trust)
+    fun getTrustMap(player: Player):Set<UUID>? = trustMap[player]
+    fun setBanMap(player: Player,ban:Set<UUID>) = banMap.set(player,ban)
+    fun getBanMap(player: Player):Set<UUID>? = banMap[player]
     fun setUUIDtoName(uuid: UUID,name: String) = uuidToNameMap.set(uuid,name)
     fun getUUIDtoName(uuid: UUID) = uuidToNameMap[uuid]
     //删除所有的关于这个玩家存在内存的信息
@@ -60,8 +61,6 @@ object Listener:Listener {
         chunkMap.remove(player)
         trustMap.remove(player)
         banMap.remove(player)
-        beTrustMap.remove(player)
-        beBanMap.remove(player)
     }
     //仅删除playerDao和uuidToName
     fun removePlayerData(uuid: UUID) {
@@ -74,7 +73,10 @@ object Listener:Listener {
     //获取这个玩家是否被世界主人信任
     private fun isBeTrust(player: Player,world:World):Boolean {
         val uuid = UUID.fromString(world.name.split("/").last())
-        return beTrustMap[player]!!.contains(uuid)
+        return getTrustMap(player)!!.contains(uuid)
+    }
+    fun isBeTrust(player: Player,uuid: UUID):Boolean {
+        return getTrustMap(player)!!.contains(uuid)
     }
     //这个玩家是否在被信任的世界，包括自己的世界
     private fun isInTrustedWorld(player: Player):Boolean{
@@ -84,6 +86,15 @@ object Listener:Listener {
         if (isBeTrust(player,player.world)) return true
         return false
     }
+    //获取这个玩家是否被世界主人拉黑
+    private fun isBeBan(player: Player,world:World):Boolean {
+        val uuid = UUID.fromString(world.name.split("/").last())
+        return getBanMap(player)!!.contains(uuid)
+    }
+    fun isBeBan(player: Player,uuid: UUID):Boolean {
+        return getBanMap(player)!!.contains(uuid)
+    }
+
 
     @EventHandler
     fun onLogin(e:PlayerLoginEvent) {
@@ -147,6 +158,7 @@ object Listener:Listener {
                         spawn =
                             "${world.spawnLocation.x},${world.spawnLocation.y},${world.spawnLocation.z},${world.spawnLocation.yaw},${world.spawnLocation.pitch}"
                         worldStatus = 0
+                        chunkCount = 1
                     }
                     //玩家数据存入数据库
                     ChunkWorld.db.playerCreate(playerDao)
@@ -163,17 +175,15 @@ object Listener:Listener {
                     //新建了玩家数据，可以存入内存
                     setPlayerDaoMap(e.player.name,playerDao)
                     setUUIDtoName(e.player.uniqueId,e.player.name)
-                    setChunkMap(e.player, listOf(chunkDao.x to chunkDao.z))
-                    setTrustMap(e.player,emptyList())
-                    setBanMap(e.player, emptyList())
-                    setBeTrustMap(e.player, emptyList())
-                    setBeBanMap(e.player, emptyList())
+                    setChunkMap(e.player, setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z))
+                    setTrustMap(e.player, emptySet())
+                    setBanMap(e.player, emptySet())
                     //现在是同步
                     switchContext(SynchronizationContext.SYNC)
-                    e.player.sendMessage("${System.currentTimeMillis()}")
                     //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
-                    WorldEdit.setBarrier(listOf(chunkDao.x to chunkDao.z),chunkDao.x to chunkDao.z,world)
-                    e.player.sendMessage("${System.currentTimeMillis()}")
+                    WorldEdit.setBarrier(
+                        setOf( world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
+                        world.spawnLocation.chunk.x to world.spawnLocation.chunk.z ,world)
                     //存储世界
                     world.save()
                 } else {
@@ -190,17 +200,20 @@ object Listener:Listener {
                         }
                         //区块数据存入数据库
                         ChunkWorld.db.chunkCreate(chunkDao)
-                        chunkMap[e.player] = listOf(chunkDao.x to chunkDao.z)
+                        chunkMap[e.player] = setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z)
                         //创建第一次的屏障
                         //现在是同步
                         switchContext(SynchronizationContext.SYNC)
-                        WorldEdit.setBarrier(listOf(chunkDao.x to chunkDao.z),chunkDao.x to chunkDao.z,world)
+                        WorldEdit.setBarrier(
+                            setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
+                            world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,world)
+                    }else{
+                        //有区块信息，存入内存
+                        setChunkMap(e.player,chunList.toSet())
                     }
                     SynchronizationContext.ASYNC
-                    trustMap[e.player] = ChunkWorld.db.trustGet(playerDao.id)
-                    banMap[e.player] = ChunkWorld.db.banGet(playerDao.id)
-                    beTrustMap[e.player] = ChunkWorld.db.beTrustGet(playerDao.id)
-                    beBanMap[e.player] = ChunkWorld.db.beBanGet(playerDao.id)
+                    setTrustMap(e.player, ChunkWorld.db.getShip(playerDao.id,true).map { it.uuid }.toSet())
+                    setBanMap(e.player, ChunkWorld.db.getShip(playerDao.id,false).map { it.uuid }.toSet())
                 }
                 //切换主线程，加载区块并传送玩家过去
                 switchContext(SynchronizationContext.SYNC)
@@ -345,28 +358,25 @@ object Listener:Listener {
         //查看是否能传送
         when(playerDao!!.worldStatus) {
             //玩家世界开放
-            0.toShort() -> {
+            0.toByte() -> {
                 //如果是黑名单，也无法进入
-                val beBanList = getBeBanMap(player)!!
-                if (beBanList.contains(playerDao.uuid)) {
+                if (isBeBan(player,uuid)) {
                     //取消传送任务
                     player.sendMessage("§c此玩家禁止你访问")
                     e.isCancelled = true
                     return
                 }
             }
-            1.toShort() -> {
+            1.toByte() -> {
                 //部分开放，看看是否被信任
-                val beTrustList = getBeTrustMap(player)!!
-                if (!beTrustList.contains(playerDao.uuid)) {
-                    //取消传送任务
+                if (!isBeTrust(player,uuid)) {
                     player.sendMessage("§c此玩家只允许信任的玩家访问")
                     e.isCancelled = true
                     return
                 }
             }
             //玩家世界仅对自己开放
-            2.toShort() -> {
+            2.toByte() -> {
                 //取消传送任务
                 player.sendMessage("§c此玩家禁止他人访问")
                 e.isCancelled = true

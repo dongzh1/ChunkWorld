@@ -2,6 +2,8 @@ package com.dongzh1.chunkworld.command
 
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.Listener
+import com.dongzh1.chunkworld.Listener.isBeBan
+import com.dongzh1.chunkworld.Listener.isBeTrust
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.submit
@@ -65,31 +67,28 @@ object Tp {
             //玩家离线，查看世界能否传送,先看世界状态
             when(playerDao!!.worldStatus) {
                 //玩家世界开放
-                0.toShort() -> {
+                0.toByte() -> {
                     //如果是黑名单，也无法进入
-                    val beBanList = Listener.getBeBanMap(player)!!
-                    if (beBanList.contains(playerDao!!.uuid)) {
+                    if (isBeBan(player,playerDao!!.uuid)) {
                         //取消传送任务
                         task.cancel()
                         player.sendMessage("§c此玩家禁止你访问")
                         return@launchCoroutine
                     }
                 }
-                1.toShort() -> {
+                1.toByte() -> {
                     //部分开放，看看是否被信任
-                    val beTrustList = Listener.getBeTrustMap(player)!!
-                    if (!beTrustList.contains(playerDao!!.uuid)) {
-                        //取消传送任务
+                    if (!isBeTrust(player,playerDao!!.uuid)) {
                         task.cancel()
                         player.sendMessage("§c此玩家只允许信任的玩家访问")
                         return@launchCoroutine
                     }
                 }
                 //玩家世界仅对自己开放
-                2.toShort() -> {
+                2.toByte() -> {
                     //取消传送任务
-                    task.cancel()
                     player.sendMessage("§c此玩家禁止他人访问")
+                    task.cancel()
                     return@launchCoroutine
                 }
             }

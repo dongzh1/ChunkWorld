@@ -4,6 +4,8 @@ import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.Listener
 import com.dongzh1.chunkworld.WorldEdit
 import com.dongzh1.chunkworld.basic.ConfirmExpandGui
+import com.dongzh1.chunkworld.basic.ListGui
+import com.dongzh1.chunkworld.basic.SettingGui
 import com.google.common.io.ByteStreams
 import com.sk89q.worldedit.world.block.BlockTypes
 import com.xbaimiao.easylib.command.ArgNode
@@ -19,6 +21,7 @@ import org.bukkit.Location
 import org.bukkit.WorldCreator
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.bukkit.inventory.EquipmentSlot
 
 @ECommandHeader(command = "chunkworld")
 object Command {
@@ -30,17 +33,7 @@ object Command {
         description = "重载插件"
         permission = "chunkworld.reload"
         exec {
-            sender.sendMessage("全程开始：${System.currentTimeMillis()}")
-            Bukkit.getWorld(ChunkWorld.inst.config.getString("Resource")!!)!!.getChunkAtAsync(
-                (0..500).random(),
-                (0..500).random()
-            ).thenAccept {
-                sender.sendMessage("粘贴开始：${System.currentTimeMillis()}")
-                //已经加载好了区块再粘贴，测试是否会卡服
-                WorldEdit.copyChunk(it,sender.chunk)
-                sender.sendMessage("粘贴结束：${System.currentTimeMillis()}")
-            }
-            sender.sendMessage("顺序结束：${System.currentTimeMillis()}")
+            ListGui(sender,1,false).build()
         }
     }
     @CommandBody

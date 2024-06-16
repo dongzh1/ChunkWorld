@@ -20,7 +20,7 @@ class PlayerDao {
     lateinit var name: String
 
     //世界创建时间,yyyy_mm_dd_hh_mm_ss
-    @DatabaseField(dataType = DataType.STRING, columnName = "create_time")
+    @DatabaseField(dataType = DataType.STRING, columnName = "createTime")
     lateinit var createTime: String
 
     //世界出生点
@@ -28,8 +28,12 @@ class PlayerDao {
     lateinit var spawn: String
 
     //世界状态,012分别代表开放,部分开放,关闭
-    @DatabaseField(dataType = DataType.SHORT, columnName = "world_status")
-    var worldStatus: Short = 0
+    @DatabaseField(dataType = DataType.BYTE, columnName = "worldStatus")
+    var worldStatus: Byte = 0
+
+    //占领区块数量，防便调用查看
+    @DatabaseField(dataType = DataType.INTEGER, columnName = "chunkCount")
+    var chunkCount: Int = 0
 
     fun x() = spawn.split(",")[0].toDouble()
     fun y() = spawn.split(",")[1].toDouble()

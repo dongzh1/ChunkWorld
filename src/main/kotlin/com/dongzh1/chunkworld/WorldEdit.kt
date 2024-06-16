@@ -32,20 +32,20 @@ object WorldEdit {
      * @param blockType 指定的方块
      */
     private fun setBlock(pos1:Location, pos2:Location, blockType: BlockType) {
-        TaskManager.taskManager().async {
-            val world = BukkitAdapter.adapt(pos1.world)
-            val region = CuboidRegion(
-                BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
-                BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
-            )
-            // 创建一个编辑会话
-            val editSession: EditSession = WorldEdit.getInstance().newEditSessionBuilder().world(world).fastMode(true).build()
+            TaskManager.taskManager().async {
+                val world = BukkitAdapter.adapt(pos1.world)
+                val region = CuboidRegion(
+                    BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
+                    BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
+                )
+                // 创建一个编辑会话
+                val editSession: EditSession = WorldEdit.getInstance().newEditSessionBuilder().world(world).fastMode(true).build()
 
-            // 替换区域内的所有方块为指定方块
-            editSession.use { session ->
-                session.setBlocks(region as Region, blockType.defaultState)
+                // 替换区域内的所有方块为指定方块
+                editSession.use { session ->
+                    session.setBlocks(region as Region, blockType.defaultState)
+                }
             }
-        }
     }
     /**
      * 复制指定区块到指定位置，保留群系
@@ -58,7 +58,7 @@ object WorldEdit {
             val region = CuboidRegion(
                 weWorld,
                 BlockVector3.at(chunk.x*16,-64,chunk.z*16),
-                BlockVector3.at(chunk.x*16+15,320,chunk.z*16+15)
+                BlockVector3.at(chunk.x*16+15,319,chunk.z*16+15)
             )
             val clipboard = BlockArrayClipboard(region)
             region.compile(clipboard,weWorld)
@@ -86,10 +86,10 @@ object WorldEdit {
      * @param chunkList 玩家区块列表
      * @param chunk 玩家要占领的区块
      */
-    fun setBarrier(chunkList:List<Pair<Int,Int>>,chunk:Pair<Int,Int>,world: World){
+    fun setBarrier(chunkList:Set<Pair<Int,Int>>,chunk:Pair<Int,Int>,world: World){
         //获取设置区块的两角坐标
         val pos1 = Location(world,chunk.first*16.toDouble(),-64.0,chunk.second*16.toDouble())
-        val pos2 = Location(world,chunk.first*16.toDouble()+15,320.0,chunk.second*16.toDouble()+15)
+        val pos2 = Location(world,chunk.first*16.toDouble()+15,319.0,chunk.second*16.toDouble()+15)
         //获取围绕区块的四面
         val barrierRegions = mutableListOf(
             //北面
