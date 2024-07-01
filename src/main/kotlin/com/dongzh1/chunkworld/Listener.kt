@@ -406,11 +406,11 @@ object Listener:Listener {
         //玩家去主城，就改为冒险模式
         if (player.world.name == "world"){
             player.gameMode = GameMode.ADVENTURE
-            Title.title(Component.text("§b神奇小黑屋"),
+            player.showTitle(Title.title(Component.text("§b神奇小黑屋"),
                 Component.text("§f不会建筑的dong默默路过"),
                 Times.times(Duration.ofSeconds(1),
                     Duration.ofSeconds(5),
-                    Duration.ofSeconds(1)))
+                    Duration.ofSeconds(1))))
             return
         }
         //不是玩家世界就生存
