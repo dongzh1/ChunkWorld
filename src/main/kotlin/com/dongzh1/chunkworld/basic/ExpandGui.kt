@@ -11,6 +11,8 @@ import com.xbaimiao.easylib.util.hasItem
 import com.xbaimiao.easylib.util.submit
 import com.xbaimiao.easylib.util.takeItem
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.title.Title
+import net.kyori.adventure.title.Title.Times
 import org.bukkit.Bukkit
 import org.bukkit.Chunk
 import org.bukkit.Location
@@ -18,6 +20,7 @@ import org.bukkit.Material
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import java.time.Duration
 import kotlin.concurrent.timer
 import kotlin.math.max
 
@@ -240,10 +243,10 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         if (sourceChunk != null){
             WorldEdit.copyChunk(sourceChunk,chunk)
         }else{
-            //清除一边屏障
+            //清除屏障
             val pos1 = Location(chunk.world,chunk.x*16.toDouble(),-64.0,chunk.z*16.toDouble())
             val pos2 = Location(chunk.world,chunk.x*16.toDouble()+15,319.0,chunk.z*16.toDouble()+15)
-            WorldEdit.setBlock(pos1,pos2,BlockTypes.AIR!!)
+            WorldEdit.setBlock(pos1,pos2,BlockTypes.BARRIER!!,BlockTypes.AIR!!)
         }
         Listener.addChunkMap(p,chunk.x to chunk.z)
         submit(async = true) {
@@ -255,6 +258,8 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         }
         //生成屏障
         WorldEdit.setBarrier(Listener.getChunkMap(p)!!,chunk.x to chunk.z,chunk.world)
+        Title.title(Component.text("§e恭喜您"), Component.text("§f掌握了区块 ${chunk.x} ${chunk.z}"),
+            Times.times(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofSeconds(1)))
     }
     private fun cancel(){
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)

@@ -10,7 +10,9 @@ import com.xbaimiao.easylib.util.CommandBody
 import com.xbaimiao.easylib.util.ECommandHeader
 import com.xbaimiao.easylib.util.submit
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.entity.Player
+import kotlin.math.abs
 
 @ECommandHeader(command = "chunkworld")
 object Command {
@@ -19,6 +21,20 @@ object Command {
             listOf("invite", "unban")
         }, parse = {
             it
+        }
+    )
+    private val yaw = ArgNode(("yaw"),
+        exec = {
+            listOf("0","45","90")
+        }, parse = {
+            it.toFloat()
+        }
+    )
+    private val pitch = ArgNode(("pitch"),
+        exec = {
+            listOf("0","45","90")
+        }, parse = {
+            it.toFloat()
         }
     )
     val invite = command<Player>("invite") {
@@ -210,6 +226,56 @@ object Command {
         offlinePlayers(optional = true) { playerArg ->
             exec {
                 Tp.to(playerArg.valueOrNull()?:sender.name, sender)
+            }
+        }
+    }
+    /**
+     * 世界传送
+     */
+    @CommandBody
+    val world = command<Player>("world"){
+        description = "传送到指定世界的指定坐标"
+        permission = "chunkworld.world"
+        worlds { world ->
+            x { x ->
+                y { y ->
+                    z { z->
+                        arg(yaw){ yaw ->
+                            arg(pitch){ pitch ->
+                                booleans {
+                                    exec {
+                                        val location = Location(valueOf(world),valueOf(x),valueOf(y),valueOf(z),valueOf(yaw),valueOf(pitch))
+                                        if (valueOf(it)){
+                                            //要读秒
+                                            //计时器，3秒后传送
+                                            var n = 0
+                                            //玩家禁止时的坐标
+                                            val stop = sender.location
+                                            val task = submit(delay = 1,period = 20, maxRunningNum = 4) {
+                                                //如果玩家移动了，取消传送,判断距离为0.1
+                                                if (abs(sender.location.x - stop.x) > 0.1 || abs(sender.location.y - stop.y) > 0.1 || abs(sender.location.z - stop.z) > 0.1){
+                                                    cancel()
+                                                    sender.sendMessage("§c你移动了,传送取消")
+                                                    return@submit
+                                                }
+                                                if (n == 3) {
+                                                    //如果坐标加载了，就传送，不管传不传送，这个任务都取消
+                                                    sender.teleportAsync(location)
+                                                }
+                                                if(n < 3)
+                                                    sender.sendMessage("§a ${3-n} 秒后进行传送，请不要移动!")
+                                                if (n == 3) sender.sendMessage("§a正在传送...")
+                                                n++
+                                            }
+                                        }else{
+                                            sender.teleportAsync(location)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

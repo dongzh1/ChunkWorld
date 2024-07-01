@@ -430,6 +430,16 @@ object Listener:Listener {
 
     }
     /**
+     * 家园穿过地狱门
+     */
+    @EventHandler
+    fun portal(e:PlayerPortalEvent){
+        if (e.player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)){
+            e.isCancelled = true
+
+        }
+    }
+    /**
      * 玩家死亡重生,在自己家园死就在自己家园生
      */
     @EventHandler

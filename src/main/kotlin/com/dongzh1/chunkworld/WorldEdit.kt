@@ -15,6 +15,7 @@ import com.sk89q.worldedit.regions.CylinderRegion
 import com.sk89q.worldedit.regions.Region
 import com.sk89q.worldedit.regions.selector.CuboidRegionSelector
 import com.sk89q.worldedit.session.request.RequestSelection
+import com.sk89q.worldedit.world.block.BaseBlock
 import com.sk89q.worldedit.world.block.BlockType
 import com.sk89q.worldedit.world.block.BlockTypes
 import org.bukkit.Bukkit
@@ -46,6 +47,25 @@ object WorldEdit {
                     session.setBlocks(region as Region, blockType.defaultState)
                 }
             }
+    }
+    /**
+     * 替换区域内的方块为指定方块
+     */
+    fun setBlock(pos1:Location, pos2:Location,beReplaceType:BlockType, blockType: BlockType) {
+        TaskManager.taskManager().async {
+            val world = BukkitAdapter.adapt(pos1.world)
+            val region = CuboidRegion(
+                BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
+                BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
+            )
+            // 创建一个编辑会话
+            val editSession: EditSession = WorldEdit.getInstance().newEditSessionBuilder().world(world).fastMode(true).build()
+
+            // 替换区域内的所有方块为指定方块
+            editSession.use { session ->
+                session.replaceBlocks(region as Region, mutableSetOf(BaseBlock(beReplaceType.defaultState)),blockType.defaultState)
+            }
+        }
     }
     /**
      * 复制指定区块到指定位置，保留群系
