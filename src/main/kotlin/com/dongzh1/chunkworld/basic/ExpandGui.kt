@@ -259,7 +259,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         //生成屏障
         WorldEdit.setBarrier(Listener.getChunkMap(p)!!,chunk.x to chunk.z,chunk.world)
         Title.title(Component.text("§e恭喜您"), Component.text("§f掌握了区块 ${chunk.x} ${chunk.z}"),
-            Times.times(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofSeconds(1)))
+            Times.times(Duration.ofSeconds(1), Duration.ofSeconds(5), Duration.ofSeconds(1)))
     }
     private fun cancel(){
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)

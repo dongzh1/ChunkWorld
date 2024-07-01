@@ -406,6 +406,11 @@ object Listener:Listener {
         //玩家去主城，就改为冒险模式
         if (player.world.name == "world"){
             player.gameMode = GameMode.ADVENTURE
+            Title.title(Component.text("§b神奇小黑屋"),
+                Component.text("§f不会建筑的dong默默路过"),
+                Times.times(Duration.ofSeconds(1),
+                    Duration.ofSeconds(5),
+                    Duration.ofSeconds(1)))
             return
         }
         //不是玩家世界就生存
@@ -436,7 +441,22 @@ object Listener:Listener {
     fun portal(e:PlayerPortalEvent){
         if (e.player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)){
             e.isCancelled = true
-
+            val locationString = ChunkWorld.inst.config.getString("Location")!!
+            val worldName = locationString.split(",")[0]
+            val x = locationString.split(",")[1].toDouble()
+            val y = locationString.split(",")[2].toDouble()
+            val z = locationString.split(",")[3].toDouble()
+            val yaw = locationString.split(",")[4].toFloat()
+            val pitch = locationString.split(",")[5].toFloat()
+            val location = Location(Bukkit.getWorld(worldName),x, y, z, yaw, pitch)
+            e.player.teleportAsync(location)
+        }
+        if (e.player.world.name == "world"){
+            e.isCancelled = true
+            val playerDao = getPlayerDaoMap(e.player.uniqueId)!!
+            val location = Location(Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
+                playerDao.x(),playerDao.y(),playerDao.z(),playerDao.yaw(),playerDao.pitch())
+            e.player.teleportAsync(location)
         }
     }
     /**
