@@ -31,7 +31,7 @@ object WorldEdit {
      * @param pos2 区域的第二个位置
      * @param blockType 指定的方块
      */
-    private fun setBlock(pos1:Location, pos2:Location, blockType: BlockType) {
+    fun setBlock(pos1:Location, pos2:Location, blockType: BlockType) {
             TaskManager.taskManager().async {
                 val world = BukkitAdapter.adapt(pos1.world)
                 val region = CuboidRegion(

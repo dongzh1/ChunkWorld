@@ -5,6 +5,7 @@ import com.dongzh1.chunkworld.Listener
 import com.dongzh1.chunkworld.WorldEdit
 import com.dongzh1.chunkworld.basic.Biome.chinese
 import com.dongzh1.chunkworld.database.dao.ChunkDao
+import com.sk89q.worldedit.world.block.BlockTypes
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.hasItem
 import com.xbaimiao.easylib.util.submit
@@ -12,6 +13,7 @@ import com.xbaimiao.easylib.util.takeItem
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Chunk
+import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
@@ -213,7 +215,12 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             it.view.setItem(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
                 null,-1))
         }
-
+        basic.onClick(30) {
+            confirm(chunk1,chunk2,chunk3)
+        }
+        basic.onClick(32) {
+            cancel()
+        }
         basic.onClose{
             if (!canClose) build(chunk1,chunk2,chunk3,it.view.getItem(11)!!,it.view.getItem(13)!!,it.view.getItem(15)!!)
         }
@@ -232,6 +239,11 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         }
         if (sourceChunk != null){
             WorldEdit.copyChunk(sourceChunk,chunk)
+        }else{
+            //清除一边屏障
+            val pos1 = Location(chunk.world,chunk.x*16.toDouble(),-64.0,chunk.z*16.toDouble())
+            val pos2 = Location(chunk.world,chunk.x*16.toDouble()+15,319.0,chunk.z*16.toDouble()+15)
+            WorldEdit.setBlock(pos1,pos2,BlockTypes.AIR!!)
         }
         Listener.addChunkMap(p,chunk.x to chunk.z)
         submit(async = true) {

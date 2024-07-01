@@ -3,6 +3,7 @@ package com.dongzh1.chunkworld.database.dao
 import com.j256.ormlite.field.DataType
 import com.j256.ormlite.field.DatabaseField
 import com.j256.ormlite.table.DatabaseTable
+import org.bukkit.Location
 import java.util.*
 
 @DatabaseTable(tableName = "playerDao")

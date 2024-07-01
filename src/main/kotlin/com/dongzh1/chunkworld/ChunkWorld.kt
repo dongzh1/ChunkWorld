@@ -49,6 +49,8 @@ class ChunkWorld : EasyPlugin() {
         registerCommand(Command)
         //注册监听
         registerListener(Listener)
+        Command.invite.register()
+        Command.ban.register()
         //加载世界，用于获取区块
         Bukkit.createWorld(WorldCreator("${config.getString("Resource")}"))
 

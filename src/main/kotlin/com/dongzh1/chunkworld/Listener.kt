@@ -1,19 +1,18 @@
 package com.dongzh1.chunkworld
 
+import com.destroystokyo.paper.event.player.PlayerPostRespawnEvent
 import com.dongzh1.chunkworld.basic.ConfirmExpandGui
 import com.dongzh1.chunkworld.database.dao.ChunkDao
 import com.dongzh1.chunkworld.database.dao.PlayerDao
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
+import com.xbaimiao.easylib.util.submit
+import io.papermc.paper.event.player.AsyncChatEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
-import org.bukkit.Bukkit
-import org.bukkit.GameMode
-import org.bukkit.Material
-import org.bukkit.World
-import org.bukkit.WorldCreator
+import org.bukkit.*
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -21,6 +20,7 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityTargetEvent
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent
+import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.player.*
 import org.bukkit.event.vehicle.VehicleDamageEvent
@@ -36,6 +36,14 @@ object Listener:Listener {
     private val trustMap = mutableMapOf<Player,Set<UUID>>()
     private val banMap = mutableMapOf<Player,Set<UUID>>()
     private val uuidToNameMap = mutableMapOf<UUID,String>()
+    private val command = mutableListOf<String>()
+    private val reSpawn = mutableSetOf<Player>()
+    fun setCommand(string: String) {
+        command.add(string)
+        submit(delay = 60*20) { removeCommand(string) }
+    }
+    fun removeCommand(string: String) = command.remove(string)
+    fun hasCommand(string: String):Boolean = command.contains(string)
     fun setPlayerDaoMap(name:String, playerDao: PlayerDao) = playerDaoMap.set(name,playerDao)
     fun getPlayerDaoMap(name:String):PlayerDao? = playerDaoMap[name]
     fun getPlayerDaosMap():List<PlayerDao> = playerDaoMap.values.toList()
@@ -148,6 +156,7 @@ object Listener:Listener {
             }else {
                 //现在是异步
                 switchContext(SynchronizationContext.ASYNC)
+                val spawnLocation:Location
                 //第一次加载世界完毕，建立玩家信息
                 if (playerDao == null) {
                     playerDao = PlayerDao().apply {
@@ -160,6 +169,7 @@ object Listener:Listener {
                         worldStatus = 0
                         chunkCount = 1
                     }
+                    spawnLocation = world.spawnLocation
                     //玩家数据存入数据库
                     ChunkWorld.db.playerCreate(playerDao)
                     //取出玩家数据，获取id
@@ -188,6 +198,7 @@ object Listener:Listener {
                     world.save()
                 } else {
                     //有玩家数据,导入所有到内存
+                    spawnLocation = Location(world,playerDao.x(),playerDao.y(),playerDao.z(),playerDao.yaw(),playerDao.pitch())
                     setPlayerDaoMap(e.player.name,playerDao)
                     setUUIDtoName(e.player.uniqueId,e.player.name)
                     val chunList = ChunkWorld.db.chunkGet(playerDao.id)
@@ -218,7 +229,7 @@ object Listener:Listener {
                 //切换主线程，加载区块并传送玩家过去
                 switchContext(SynchronizationContext.SYNC)
                 //传送玩家
-                e.player.teleportAsync(world.spawnLocation).thenAccept {
+                e.player.teleportAsync(spawnLocation).thenAccept {
                     e.player.clearTitle()
                     e.player.removePotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS)
                 }
@@ -228,20 +239,21 @@ object Listener:Listener {
     @EventHandler
     fun onInteract(e:PlayerInteractEvent){
         //如果是拓展物品，也要取消
+        var isItem = false
         if (e.item?.type == Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)){
             if (e.item!!.itemMeta.hasCustomModelData()){
                 //物品有模型值，看能不能和配置的模型值相等
                 if (e.item!!.itemMeta.customModelData == ChunkWorld.inst.config.getInt("item.customModelData")){
+                    isItem = true
                     //是指定物品，取消
                     e.isCancelled = true
-                    return
                 }
             }else{
                 //物品没有模型值，看配置的模型值是不是-1
                 if (ChunkWorld.inst.config.getInt("item.customModelData") == -1){
                     //配置不需要模型值，手上物品也没有模型值,说明是指定物品，取消
+                    isItem = true
                     e.isCancelled = true
-                    return
                 }
             }
         }
@@ -260,7 +272,7 @@ object Listener:Listener {
         if (e.clickedBlock?.type == org.bukkit.Material.BARRIER){
             //如果是世界主人，可以拓展世界
             e.isCancelled = true
-            if (e.player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"){
+            if (e.player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}" && isItem){
                 ConfirmExpandGui(e.player, e.clickedBlock!!.chunk).build()
             }
             return
@@ -362,7 +374,7 @@ object Listener:Listener {
                 //如果是黑名单，也无法进入
                 if (isBeBan(player,uuid)) {
                     //取消传送任务
-                    player.sendMessage("§c此玩家禁止你访问")
+                    player.sendMessage("§c此家园禁止你访问")
                     e.isCancelled = true
                     return
                 }
@@ -370,7 +382,7 @@ object Listener:Listener {
             1.toByte() -> {
                 //部分开放，看看是否被信任
                 if (!isBeTrust(player,uuid)) {
-                    player.sendMessage("§c此玩家只允许信任的玩家访问")
+                    player.sendMessage("§c此家园只允许共享家园的玩家访问")
                     e.isCancelled = true
                     return
                 }
@@ -378,7 +390,7 @@ object Listener:Listener {
             //玩家世界仅对自己开放
             2.toByte() -> {
                 //取消传送任务
-                player.sendMessage("§c此玩家禁止他人访问")
+                player.sendMessage("§c此家园禁止他人访问")
                 e.isCancelled = true
                 return
             }
@@ -410,5 +422,41 @@ object Listener:Listener {
             return
         }
     }
+    /**
+     * 监听聊天，主要用于指令回应
+     */
+    @EventHandler
+    fun chat(e:AsyncChatEvent){
 
+    }
+    /**
+     * 玩家死亡重生,在自己家园死就在自己家园生
+     */
+    @EventHandler
+    fun death(e:PlayerDeathEvent){
+        if (e.player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"){
+            reSpawn.add(e.player)
+            submit(delay = 20*10) { reSpawn.remove(e.player) }
+        }
+    }
+    /**
+     * 玩家重生事件
+     */
+    @EventHandler
+    fun reborn(e:PlayerRespawnEvent){
+        if (reSpawn.contains(e.player)){
+            //出生在自己家园
+            val dao = getPlayerDaoMap(e.player.uniqueId)!!
+            e.respawnLocation = Location(Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
+                dao.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
+            reSpawn.remove(e.player)
+        }
+    }
+    /**
+     *
+     */
+    @EventHandler
+    fun respawn(e:PlayerPostRespawnEvent){
+
+    }
 }

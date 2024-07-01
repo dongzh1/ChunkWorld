@@ -72,7 +72,7 @@ object Tp {
                     if (isBeBan(player,playerDao!!.uuid)) {
                         //取消传送任务
                         task.cancel()
-                        player.sendMessage("§c此玩家禁止你访问")
+                        player.sendMessage("§c此家园禁止你访问")
                         return@launchCoroutine
                     }
                 }
@@ -80,14 +80,14 @@ object Tp {
                     //部分开放，看看是否被信任
                     if (!isBeTrust(player,playerDao!!.uuid)) {
                         task.cancel()
-                        player.sendMessage("§c此玩家只允许信任的玩家访问")
+                        player.sendMessage("§c此家园只允许共享家园的玩家访问")
                         return@launchCoroutine
                     }
                 }
                 //玩家世界仅对自己开放
                 2.toByte() -> {
                     //取消传送任务
-                    player.sendMessage("§c此玩家禁止他人访问")
+                    player.sendMessage("§c此家园禁止他人访问")
                     task.cancel()
                     return@launchCoroutine
                 }

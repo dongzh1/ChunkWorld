@@ -18,6 +18,8 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
     // 根据玩家名字获取玩家信息
     fun playerGet(name: String): PlayerDao? =
         playerDao.queryForEq("name", name).firstOrNull()
+    fun playerGet(uuid: UUID): PlayerDao? =
+        playerDao.queryForEq("uuid", uuid).firstOrNull()
 
     // 获取玩家信息，但排除指定玩家列表，根据chunkCount从大到小排序，然后取第n到第m个
     fun playerGet(n: Int, m: Int, exclude: List<Int>): List<PlayerDao> {
@@ -43,6 +45,9 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
         queryBuilder.where().`in`("uuid", uuids)
         return playerDao.query(queryBuilder.prepare())
     }
+    fun playerUpdate(dao: PlayerDao) {
+        playerDao.update(dao)
+    }
     // 根据玩家名字获取玩家占领的区块
     fun chunkGet(name: String): List<Pair<Int, Int>> =
         playerGet(name)?.let { player ->
@@ -54,7 +59,7 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
         chunkDao.queryForEq("playerID", id).map { it.x to it.z }
 
     // 方法：根据UUID获取玩家ID
-    private fun getPlayerIdByUuid(uuid: UUID): Int? {
+    fun getPlayerIdByUuid(uuid: UUID): Int? {
         val player = playerDao.queryForEq("uuid", uuid).firstOrNull()
         return player?.id
     }
@@ -156,6 +161,16 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
      */
     fun removeShip(playerId: Int, otherName:String, ship: Boolean) {
         val otherId = getPlayerIdByName(otherName) ?: return
+        removeShip(playerId, otherId, ship)
+    }
+    /**
+     * 删除关系，
+     * @param playerId 玩家1的ID
+     * @param otherUuid 玩家2的UUID
+     * @param ship false为互相拉黑关系，true为互相好友关系
+     */
+    fun removeShip(playerId: Int, otherUuid: UUID, ship: Boolean) {
+        val otherId = getPlayerIdByUuid(otherUuid) ?: return
         removeShip(playerId, otherId, ship)
     }
     /**

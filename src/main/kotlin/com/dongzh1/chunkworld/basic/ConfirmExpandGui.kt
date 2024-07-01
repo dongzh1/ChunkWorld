@@ -54,7 +54,7 @@ class ConfirmExpandGui(private val p: Player,private val chunk: Chunk) {
      * 从玩家背包判断是否有足够的指定物品，如果有就扣除并返回true,没有就返回false
      */
     private fun deduct():Boolean{
-        val chunkLevel = max(chunk.x,chunk.z)
+        val chunkLevel = max(abs(chunk.x), abs(chunk.z))
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)
         return if (ChunkWorld.inst.config.getInt("item.customModelData") == -1) {
             //判断有没有那么多

@@ -22,12 +22,39 @@ class ListGui(private val p: Player, private val page:Int,private val isTrusted:
             val playerDao = playerDaos.getOrNull(i)
             if (playerDao != null){
                 basic.set(playSlots[i],Item.head(playerDao.name,"§a${playerDao.name}", listOf(
-                    "§f解锁区块数: ${playerDao.chunkCount}","§f创建时间:", playerDao.createTime,"","§f点击传送到玩家世界"),-1))
+                    "§f解锁区块数: ${playerDao.chunkCount}","§f创建时间:", playerDao.createTime,"","§b点击传送到玩家世界"),-1))
                 basic.onClick(playSlots[i]){
                     //玩家执行指令
+                    p.closeInventory()
                     p.performCommand("chunkworld tp ${playerDao.name}")
                 }
             }
+        }
+        basic.set(45, Item.build(Material.ARROW,1,"§a上一页", listOf("§f点击翻页"),-1))
+        if (isTrusted) basic.set(49,Item.build(Material.NAME_TAG,1,"§a切换列表", listOf("§f点击切换到全部家园"),-1))
+        else basic.set(49,Item.build(Material.NAME_TAG,1,"§a切换列表", listOf("§f点击切换到共享家园"),-1))
+        basic.set(53, Item.build(Material.ARROW,1,"§a下一页", listOf("§f点击翻页"),-1))
+
+        basic.onClick { it.isCancelled = true }
+        basic.onClick(0) {
+            SettingGui(p,1).build()
+        }
+        basic.onClick(4) {
+            p.closeInventory()
+            p.performCommand("chunkworld tp")
+        }
+        basic.onClick(8) { p.closeInventory() }
+        //传送到其他玩家那里已注册
+        basic.onClick(45) {
+            if (page <= 1) return@onClick
+            else ListGui(p,page-1,isTrusted).build()
+        }
+        basic.onClick(49) {
+            p.closeInventory()
+            ListGui(p,1,!isTrusted).build()
+        }
+        basic.onClick(53) {
+            if (it.view.getItem(43) != null) ListGui(p,page+1,isTrusted).build()
         }
         basic.openAsync()
     }
@@ -39,11 +66,7 @@ class ListGui(private val p: Player, private val page:Int,private val isTrusted:
      * 假如第一页有20个在线玩家，第二页有10个在线玩家，那么第三页就从数据库中获取10个玩家
      * size代表的是每页可显示的playerDao数量
      * 这里的每页不是说数据库的每页，而是一个显示菜单，和数据库无关
-     * @param p 玩家
      * @param size 获取的数据数量
-     * @param page 页码
-     * @param isTrusted 是否是被信任的玩家
-     * @param onlinePlayers 在线玩家的playerDao
      * @return 返回玩家数据
      */
     private fun getPlayerData(size:Int): List<PlayerDao> {
