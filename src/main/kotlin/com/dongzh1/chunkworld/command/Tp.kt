@@ -65,31 +65,33 @@ object Tp {
                 return@launchCoroutine
             }
             //玩家离线，查看世界能否传送,先看世界状态
-            when(playerDao!!.worldStatus) {
-                //玩家世界开放
-                0.toByte() -> {
-                    //如果是黑名单，也无法进入
-                    if (isBeBan(player,playerDao!!.uuid)) {
+            if (!player.isOp){
+                when(playerDao!!.worldStatus) {
+                    //玩家世界开放
+                    0.toByte() -> {
+                        //如果是黑名单，也无法进入
+                        if (isBeBan(player,playerDao!!.uuid)) {
+                            //取消传送任务
+                            task.cancel()
+                            player.sendMessage("§c此家园禁止你访问")
+                            return@launchCoroutine
+                        }
+                    }
+                    1.toByte() -> {
+                        //部分开放，看看是否被信任
+                        if (!isBeTrust(player,playerDao!!.uuid)) {
+                            task.cancel()
+                            player.sendMessage("§c此家园只允许共享家园的玩家访问")
+                            return@launchCoroutine
+                        }
+                    }
+                    //玩家世界仅对自己开放
+                    2.toByte() -> {
                         //取消传送任务
+                        player.sendMessage("§c此家园禁止他人访问")
                         task.cancel()
-                        player.sendMessage("§c此家园禁止你访问")
                         return@launchCoroutine
                     }
-                }
-                1.toByte() -> {
-                    //部分开放，看看是否被信任
-                    if (!isBeTrust(player,playerDao!!.uuid)) {
-                        task.cancel()
-                        player.sendMessage("§c此家园只允许共享家园的玩家访问")
-                        return@launchCoroutine
-                    }
-                }
-                //玩家世界仅对自己开放
-                2.toByte() -> {
-                    //取消传送任务
-                    player.sendMessage("§c此家园禁止他人访问")
-                    task.cancel()
-                    return@launchCoroutine
                 }
             }
             //现在应该都是符合访问条件的

@@ -100,6 +100,12 @@ object WorldEdit {
             Operations.complete(forward)
         }
     }
+    /**
+     * 设置区块边界
+     */
+    fun setBarrier(chunkList: Set<Pair<Int, Int>>, world: World){
+
+    }
 
     /**
      * 设置玩家区块边界为屏障,所有被占领的区块外部都被屏障包裹

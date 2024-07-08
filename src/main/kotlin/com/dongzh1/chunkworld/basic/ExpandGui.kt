@@ -8,6 +8,7 @@ import com.dongzh1.chunkworld.database.dao.ChunkDao
 import com.sk89q.worldedit.world.block.BlockTypes
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.hasItem
+import com.xbaimiao.easylib.util.hasLore
 import com.xbaimiao.easylib.util.submit
 import com.xbaimiao.easylib.util.takeItem
 import net.kyori.adventure.text.Component
@@ -35,7 +36,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         //设置菜单大小为行
         basic.rows(4)
         basic.set(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
-            listOf("§c当前未选择区块!","§c此时确认将扩展空间，不生成区块"),-1))
+            listOf("§c当前未选择区块!","§c此时确认将扩展空间，不生成区块","§a群系分布按照第1个区块分布"),-1))
         basic.set(32,Item.build(Material.RED_CONCRETE,1,"§c再次抽取",
             listOf("§f消耗 §b1 §f个区块碎片重新组合区块"),-1))
 
@@ -172,7 +173,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         if (choose != 0) basic.set(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
             null,-1))
         else basic.set(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
-            listOf("§c当前未选择区块!","§c此时确认将扩展空间，不生成区块"),-1))
+            listOf("§c当前未选择区块!","§c此时确认将扩展空间，不生成区块","§a群系分布按照第1个区块分布"),-1))
         basic.set(32,Item.build(Material.RED_CONCRETE,1,"§c再次抽取",
             listOf("§f消耗 §b1 §f个区块碎片重新组合区块"),-1))
         basic.set(11,item11)
@@ -243,18 +244,20 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         if (sourceChunk != null){
             WorldEdit.copyChunk(sourceChunk,chunk)
         }else{
-            //清除屏障
-            val pos1 = Location(chunk.world,chunk.x*16.toDouble(),-64.0,chunk.z*16.toDouble())
-            val pos2 = Location(chunk.world,chunk.x*16.toDouble()+15,319.0,chunk.z*16.toDouble()+15)
-            WorldEdit.setBlock(pos1,pos2,BlockTypes.BARRIER!!,BlockTypes.AIR!!)
+            //先复制区块1
+            WorldEdit.copyChunk(chunk1,chunk)
         }
         Listener.addChunkMap(p,chunk.x to chunk.z)
+        val playerDao = Listener.getPlayerDaoMap(p.name)!!
+        playerDao.chunkCount += 1
+        Listener.setPlayerDaoMap(p.name,playerDao)
         submit(async = true) {
             ChunkWorld.db.chunkCreate(ChunkDao().apply {
                 x = chunk.x
                 z = chunk.z
-                playerID = Listener.getPlayerDaoMap(p.name)!!.id
+                playerID = playerDao.id
             })
+            ChunkWorld.db.playerUpdate(playerDao)
         }
         //生成屏障
         WorldEdit.setBarrier(Listener.getChunkMap(p)!!,chunk.x to chunk.z,chunk.world)
@@ -265,9 +268,9 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)
         if (ChunkWorld.inst.config.getInt("item.customModelData") == -1) {
             //判断有没有
-            if (p.inventory.hasItem(matcher = { type == material })){
+            if (p.inventory.hasItem(matcher = { type == material && hasLore("§c已绑定${p.name}") })){
                 //有就扣除并返回true
-                if (p.inventory.takeItem(matcher = { type == material })){
+                if (p.inventory.takeItem(matcher = { type == material && hasLore("§c已绑定${p.name}") })){
                     canClose = true
                     p.closeInventory()
                     ExpandGui(p,chunk).build()
@@ -279,9 +282,9 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             }
             //有就扣除并返回true
         }else{
-            if (p.inventory.hasItem(matcher = { type == material && itemMeta?.customModelData == ChunkWorld.inst.config.getInt("item.customModelData") }))
+            if (p.inventory.hasItem(matcher = { type == material && hasLore("§c已绑定${p.name}") && itemMeta?.customModelData == ChunkWorld.inst.config.getInt("item.customModelData") }))
                 //有就扣除并返回true
-                if (p.inventory.takeItem(matcher = { type == material && itemMeta?.customModelData == ChunkWorld.inst.config.getInt("item.customModelData") })) {
+                if (p.inventory.takeItem(matcher = { type == material && hasLore("§c已绑定${p.name}") && itemMeta?.customModelData == ChunkWorld.inst.config.getInt("item.customModelData") })) {
                     canClose = true
                     p.closeInventory()
                     ExpandGui(p, chunk).build()

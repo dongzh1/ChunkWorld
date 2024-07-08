@@ -3,6 +3,7 @@ package com.dongzh1.chunkworld.basic
 import com.dongzh1.chunkworld.ChunkWorld
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.hasItem
+import com.xbaimiao.easylib.util.hasLore
 import com.xbaimiao.easylib.util.submit
 import com.xbaimiao.easylib.util.takeItem
 import net.kyori.adventure.text.Component
@@ -58,14 +59,14 @@ class ConfirmExpandGui(private val p: Player,private val chunk: Chunk) {
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)
         return if (ChunkWorld.inst.config.getInt("item.customModelData") == -1) {
             //判断有没有那么多
-            if (p.inventory.hasItem(amount = chunkLevel, matcher = { type == material }))
+            if (p.inventory.hasItem(amount = chunkLevel, matcher = { type == material && hasLore("§c已绑定${p.name}") }))
             //有就扣除并返回true
-                p.inventory.takeItem(amount = chunkLevel, matcher = { type == material })
+                p.inventory.takeItem(amount = chunkLevel, matcher = { type == material && hasLore("§c已绑定${p.name}") })
             else
                 false
         }else{
-            if (p.inventory.hasItem(amount = chunkLevel, matcher = { type == material && itemMeta?.customModelData == ChunkWorld.inst.config.getInt("item.customModelData") }))
-                p.inventory.takeItem(amount = chunkLevel, matcher = { type == material && itemMeta?.customModelData == ChunkWorld.inst.config.getInt("item.customModelData") })
+            if (p.inventory.hasItem(amount = chunkLevel, matcher = { type == material && hasLore("§c已绑定${p.name}") && itemMeta?.customModelData == ChunkWorld.inst.config.getInt("item.customModelData") }))
+                p.inventory.takeItem(amount = chunkLevel, matcher = { type == material && hasLore("§c已绑定${p.name}") && itemMeta?.customModelData == ChunkWorld.inst.config.getInt("item.customModelData") })
             else
                 false
         }

@@ -6,6 +6,7 @@ import com.dongzh1.chunkworld.database.dao.ChunkDao
 import com.dongzh1.chunkworld.database.dao.PlayerDao
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
+import com.xbaimiao.easylib.util.hasLore
 import com.xbaimiao.easylib.util.submit
 import io.papermc.paper.event.player.AsyncChatEvent
 import net.kyori.adventure.text.Component
@@ -63,7 +64,7 @@ object Listener:Listener {
     fun setUUIDtoName(uuid: UUID,name: String) = uuidToNameMap.set(uuid,name)
     fun getUUIDtoName(uuid: UUID) = uuidToNameMap[uuid]
     //删除所有的关于这个玩家存在内存的信息
-    fun removeData(player: Player) {
+    private fun removeData(player: Player) {
         playerDaoMap.remove(player.name)
         uuidToNameMap.remove(player.uniqueId)
         chunkMap.remove(player)
@@ -154,6 +155,7 @@ object Listener:Listener {
                 e.player.kick(Component.text("世界加载失败，请联系管理员"))
                 error("世界加载失败")
             }else {
+                world.isAutoSave = true
                 //现在是异步
                 switchContext(SynchronizationContext.ASYNC)
                 val spawnLocation:Location
@@ -273,12 +275,21 @@ object Listener:Listener {
             //如果是世界主人，可以拓展世界
             e.isCancelled = true
             if (e.player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}" && isItem){
-                ConfirmExpandGui(e.player, e.clickedBlock!!.chunk).build()
+                if (e.item!!.hasLore("§c已绑定${e.player.name}")){
+                    ConfirmExpandGui(e.player, e.clickedBlock!!.chunk).build()
+                }else{
+                    e.player.sendMessage("§c请勿使用他人物品")
+                }
             }
             return
         }
-
         if (e.player.isOp) return
+        if (e.player.world.name == "world"){
+            e.isCancelled = true
+            return
+        }
+        //这时候如果取消了就直接该返回了
+        if (e.isCancelled) return
         //不是自己的世界或被信任的世界就取消
         e.isCancelled = !isInTrustedWorld(e.player)
     }
@@ -304,12 +315,20 @@ object Listener:Listener {
             val damager = e.damager as Player
             if (damager.isOp)
                 return
+            if (damager.world.name == "world"){
+                e.isCancelled = true
+                return
+            }
             //不是自己的世界或被信任的世界就取消
             e.isCancelled = !isInTrustedWorld(damager)
         }
         //如果被攻击者是玩家且不是成员，则取消事件
         if (e.entity is Player) {
             val entity = e.entity as Player
+            if (entity.world.name == "world"){
+                e.isCancelled = true
+                return
+            }
             //不是自己的世界或被信任的世界就取消
             e.isCancelled = !isInTrustedWorld(entity)
         }
@@ -329,8 +348,11 @@ object Listener:Listener {
     fun hangEntity(e:HangingBreakByEntityEvent){
         if (e.remover is Player) {
             val player = e.remover as Player
-            if (player.isOp)
+            if (player.isOp) return
+            if (player.world.name == "world"){
+                e.isCancelled = true
                 return
+            }
             //不是玩家世界就不管
             if (!player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
             //不是自己的世界或被信任的世界就取消
@@ -347,6 +369,10 @@ object Listener:Listener {
             if (player.isOp)
                 return
             //不是玩家世界就不管
+            if (player.world.name == "world"){
+                e.isCancelled = true
+                return
+            }
             if (!player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
             //不是自己的世界或被信任的世界就取消
             e.isCancelled = !isInTrustedWorld(player)
@@ -368,31 +394,33 @@ object Listener:Listener {
         val uuid = UUID.fromString(e.to.world.name.split("/").last())
         val playerDao = getPlayerDaoMap(uuid)
         //查看是否能传送
-        when(playerDao!!.worldStatus) {
-            //玩家世界开放
-            0.toByte() -> {
-                //如果是黑名单，也无法进入
-                if (isBeBan(player,uuid)) {
+        if (!e.player.isOp){
+            when(playerDao!!.worldStatus) {
+                //玩家世界开放
+                0.toByte() -> {
+                    //如果是黑名单，也无法进入
+                    if (isBeBan(player,uuid)) {
+                        //取消传送任务
+                        player.sendMessage("§c此家园禁止你访问")
+                        e.isCancelled = true
+                        return
+                    }
+                }
+                1.toByte() -> {
+                    //部分开放，看看是否被信任
+                    if (!isBeTrust(player,uuid)) {
+                        player.sendMessage("§c此家园只允许共享家园的玩家访问")
+                        e.isCancelled = true
+                        return
+                    }
+                }
+                //玩家世界仅对自己开放
+                2.toByte() -> {
                     //取消传送任务
-                    player.sendMessage("§c此家园禁止你访问")
+                    player.sendMessage("§c此家园禁止他人访问")
                     e.isCancelled = true
                     return
                 }
-            }
-            1.toByte() -> {
-                //部分开放，看看是否被信任
-                if (!isBeTrust(player,uuid)) {
-                    player.sendMessage("§c此家园只允许共享家园的玩家访问")
-                    e.isCancelled = true
-                    return
-                }
-            }
-            //玩家世界仅对自己开放
-            2.toByte() -> {
-                //取消传送任务
-                player.sendMessage("§c此家园禁止他人访问")
-                e.isCancelled = true
-                return
             }
         }
     }
@@ -409,7 +437,7 @@ object Listener:Listener {
             player.showTitle(Title.title(Component.text("§b神奇小黑屋"),
                 Component.text("§f不会建筑的dong默默路过"),
                 Times.times(Duration.ofSeconds(1),
-                    Duration.ofSeconds(5),
+                    Duration.ofSeconds(3),
                     Duration.ofSeconds(1))))
             return
         }
@@ -476,7 +504,7 @@ object Listener:Listener {
     fun reborn(e:PlayerRespawnEvent){
         if (reSpawn.contains(e.player)){
             //出生在自己家园
-            val dao = getPlayerDaoMap(e.player.uniqueId)!!
+            val dao = getPlayerDaoMap(e.player.name)!!
             e.respawnLocation = Location(Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
                 dao.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
             reSpawn.remove(e.player)
@@ -487,6 +515,13 @@ object Listener:Listener {
      */
     @EventHandler
     fun respawn(e:PlayerPostRespawnEvent){
-
     }
+    /**
+     * 玩家离线信息
+     */
+    @EventHandler
+    fun leave(e:PlayerQuitEvent){
+        e.quitMessage(null)
+    }
+
 }

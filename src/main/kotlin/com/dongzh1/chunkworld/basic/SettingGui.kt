@@ -60,7 +60,7 @@ class SettingGui(private val p: Player,private val banPage:Int) {
         }
         basic.set(18,Item.build(Material.SKELETON_SKULL,1,"信任玩家", listOf("",
             "§f右侧是你的信任的玩家",
-            "§f被信任的玩家可以在你的家园建造和破坏"),-1))
+            "§f被信任的玩家可以在你的世界建造和破坏"),-1))
         basic.set(27,Item.build(Material.WITHER_SKELETON_SKULL,1,"拉黑玩家", listOf("",
             "§f右侧是被你拉黑的玩家",
             "§f被拉黑的玩家无法进入你的世界"),-1))
@@ -73,7 +73,7 @@ class SettingGui(private val p: Player,private val banPage:Int) {
         }
         for (i in 28..34){
             basic.set(i,Item.build(Material.LIME_STAINED_GLASS_PANE,1,"§a已解锁",
-                listOf("§f使用指令 /ban 玩家","§f即可拉黑该玩家"),-1))
+                listOf("§f使用指令 /wban 玩家","§f即可拉黑该玩家"),-1))
         }
         val trustList = Listener.getTrustMap(p)!!.toList()
         val banList :List<UUID> = if (banPage == 1) Listener.getBanMap(p)!!.toList().take(banPage*7-1).toList()
@@ -97,6 +97,7 @@ class SettingGui(private val p: Player,private val banPage:Int) {
             if (p.location.world.name == ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}"){
                 //在自己世界，可以设置
                 playerDao.spawn = "${p.location.x},${p.location.y},${p.location.z},${p.location.yaw},${p.location.pitch}"
+                p.world.spawnLocation = p.location
                 submit(async = true) {
                     ChunkWorld.db.playerUpdate(playerDao)
                 //重新获取数据

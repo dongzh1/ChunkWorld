@@ -2,6 +2,8 @@ package com.dongzh1.chunkworld.basic
 
 import com.cryptomorin.xseries.XItemStack
 import com.cryptomorin.xseries.XMaterial
+import com.xbaimiao.easylib.util.ItemBuilder
+import com.xbaimiao.easylib.util.buildItem
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -17,23 +19,21 @@ object Item {
      * @param lore 介绍
      * @param customModelData 自定义模型数据,没有为-1
      */
-    fun build(material: Material,number: Int,displayName: String?,lore: List<String>?,customModelData : Int):ItemStack{
-        val item = ItemStack(material,number)
-        val meta = item.itemMeta
-        if (displayName != null) meta.displayName(Component.text(displayName))
-        if (lore != null) meta.lore(lore.map { Component.text(it) })
-        if (customModelData != -1) meta.setCustomModelData(customModelData)
-        item.itemMeta = meta
-        return item
+    fun build(itemMaterial: Material,itemNumber: Int,itemName: String?,itemLore: List<String>?,itemCustomModelData : Int):ItemStack{
+        return buildItem(XMaterial.matchXMaterial(itemMaterial), builder = {
+            amount = itemNumber
+            name = itemName
+            itemLore?.let{ lore.addAll(it)}
+            customModelData = itemCustomModelData
+        })
+
     }
-    fun head(name: String, displayName: String?, lore: List<String>?, customModelData: Int):ItemStack{
-        val item = ItemStack(Material.PLAYER_HEAD)
-        val meta = item.itemMeta as org.bukkit.inventory.meta.SkullMeta
-        meta.setOwningPlayer(Bukkit.getOfflinePlayer(name))
-        if (displayName != null) meta.displayName(Component.text(displayName))
-        if (lore != null) meta.lore(lore.map { Component.text(it) })
-        if (customModelData != -1) meta.setCustomModelData(customModelData)
-        item.itemMeta = meta
-        return item
+    fun head(playerName: String, itemName: String?, itemLore: List<String>?, itemCustomModelData: Int):ItemStack{
+        return buildItem(XMaterial.matchXMaterial(Material.PLAYER_HEAD), builder = {
+            skullOwner = playerName
+            name = itemName
+            itemLore?.let { lore.addAll(it) }
+            customModelData = itemCustomModelData
+        })
     }
 }

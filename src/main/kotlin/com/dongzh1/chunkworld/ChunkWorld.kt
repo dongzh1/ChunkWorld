@@ -50,7 +50,7 @@ class ChunkWorld : EasyPlugin() {
         //注册监听
         registerListener(Listener)
         Command.invite.register()
-        Command.ban.register()
+        Command.wban.register()
         //加载世界，用于获取区块
         Bukkit.createWorld(WorldCreator("${config.getString("Resource")}"))
 
@@ -62,6 +62,10 @@ class ChunkWorld : EasyPlugin() {
             return
         }
         worldFolder.mkdirs()
+    }
+
+    override fun onDisable() {
+        Bukkit.getWorlds().forEach { it.save() }
     }
 
 

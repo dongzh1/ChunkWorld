@@ -31,8 +31,8 @@ class ListGui(private val p: Player, private val page:Int,private val isTrusted:
             }
         }
         basic.set(45, Item.build(Material.ARROW,1,"§a上一页", listOf("§f点击翻页"),-1))
-        if (isTrusted) basic.set(49,Item.build(Material.NAME_TAG,1,"§a切换列表", listOf("§f点击切换到全部家园"),-1))
-        else basic.set(49,Item.build(Material.NAME_TAG,1,"§a切换列表", listOf("§f点击切换到共享家园"),-1))
+        if (isTrusted) basic.set(49,Item.build(Material.NAME_TAG,1,"§a切换列表", listOf("§f点击切换到全部世界"),-1))
+        else basic.set(49,Item.build(Material.NAME_TAG,1,"§a切换列表", listOf("§f点击切换到共享世界"),-1))
         basic.set(53, Item.build(Material.ARROW,1,"§a下一页", listOf("§f点击翻页"),-1))
 
         basic.onClick { it.isCancelled = true }
