@@ -104,6 +104,43 @@ object WorldEdit {
      * 设置区块边界
      */
     fun setBarrier(chunkList: Set<Pair<Int, Int>>, world: World){
+        val barrierList = mutableListOf<Pair<Location,Location>>()
+        for (chunk in chunkList){
+            //获取设置区块的两角坐标
+            val pos1 = Location(world,chunk.first*16.toDouble(),-64.0,chunk.second*16.toDouble())
+            val pos2 = Location(world,chunk.first*16.toDouble()+15,319.0,chunk.second*16.toDouble()+15)
+            //北面
+            barrierList.add(pos1.clone().add(0.0,0.0,-1.0) to pos2.clone().add(0.0,0.0,-16.0))
+            //西面
+            barrierList.add(pos1.clone().add(-1.0,0.0,0.0) to pos2.clone().add(-16.0,0.0,0.0))
+            //南面
+            barrierList.add(pos1.clone().add(0.0,0.0,16.0) to pos2.clone().add(0.0,0.0,1.0))
+            //东面
+            barrierList.add(pos1.clone().add(16.0,0.0,0.0) to pos2.clone().add(1.0,0.0,0.0))
+            //根据是否有相临的区块来删除屏障
+            for (otherChunk in chunkList){
+                //就是目标chunk
+                if(otherChunk.first == chunk.first && otherChunk.second == chunk.second){
+                    continue
+                }
+                //判断其他被占领的区块和他有没有相接，如果相接就去掉一面屏障
+                if(otherChunk.first == chunk.first && otherChunk.second == chunk.second-1){
+                    barrierList.remove(pos1.clone().add(0.0,0.0,-1.0) to pos2.clone().add(0.0,0.0,-16.0))
+                }
+                if(otherChunk.first == chunk.first && otherChunk.second == chunk.second+1){
+                    barrierList.remove(pos1.clone().add(0.0,0.0,16.0) to pos2.clone().add(0.0,0.0,1.0))
+                }
+                if(otherChunk.first == chunk.first-1 && otherChunk.second == chunk.second){
+                    barrierList.remove(pos1.clone().add(-1.0,0.0,0.0) to pos2.clone().add(-16.0,0.0,0.0))
+                }
+                if(otherChunk.first == chunk.first+1 && otherChunk.second == chunk.second){
+                    barrierList.remove(pos1.clone().add(16.0,0.0,0.0) to pos2.clone().add(1.0,0.0,0.0))
+                }
+            }
+        }
+        for (region in barrierList){
+            setBlock(region.first,region.second,BlockTypes.BARRIER!!)
+        }
 
     }
 

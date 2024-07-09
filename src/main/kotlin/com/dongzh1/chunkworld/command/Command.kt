@@ -2,6 +2,7 @@ package com.dongzh1.chunkworld.command
 
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.Listener
+import com.dongzh1.chunkworld.WorldEdit
 import com.dongzh1.chunkworld.basic.ListGui
 import com.xbaimiao.easylib.chat.TellrawJson
 import com.xbaimiao.easylib.command.ArgNode
@@ -294,6 +295,7 @@ object Command {
      */
     @CommandBody
     val extendold = command<Player>("extendold"){
+        permission = "chunkworld.admin"
         offlinePlayers {
             exec {
                 val name = valueOf(it)
@@ -304,7 +306,26 @@ object Command {
                         return@submit
                     }
                     val chunkdao = ChunkWorld.db.chunkGet(playerDao.id)
+                    submit {
+                        val world = Bukkit.createWorld(WorldCreator(ChunkWorld.inst.config.getString("World")!!+"/${playerDao.uuid}"))
+                        if (world != null){
+                            var n = 0
+                            for (chunk in chunkdao){
+                                world.getChunkAtAsync(chunk.first,chunk.second).thenAccept { n+=1 }
+                            }
+                            submit(period = 20, maxRunningNum = 100) {
+                                if (n != chunkdao.size) return@submit
+                                else{
+                                    WorldEdit.setBarrier(chunkdao.toSet(),world)
+                                    cancel()
+                                    sender.sendMessage("生成完毕")
+                                }
+                            }
 
+                        }else{
+                            sender.sendMessage("§c世界不存在")
+                        }
+                    }
                 }
             }
         }
