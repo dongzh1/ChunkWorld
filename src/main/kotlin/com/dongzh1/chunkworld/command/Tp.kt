@@ -9,10 +9,14 @@ import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.submit
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.Material
+import org.bukkit.World
 import org.bukkit.WorldCreator
+import org.bukkit.block.data.BlockData
 import org.bukkit.entity.Player
 import java.util.UUID
 import kotlin.math.abs
+import kotlin.random.Random
 
 object Tp {
     //去指定玩家的世界
@@ -106,5 +110,71 @@ object Tp {
             }
             target = Location(world, playerDao!!.x(), playerDao!!.y(), playerDao!!.z(), playerDao!!.yaw(), playerDao!!.pitch())
         }
+    }
+    fun randomTp(p:Player,world: World,range:Int){
+        p.sendMessage("")
+        val x = Random.nextInt(-range,range)
+        val z = Random.nextInt(-range,range)
+        submit(async = true) {
+            //异步获取对应的信息，主线程再传送和修改
+            when(world.environment){
+                World.Environment.NETHER -> {
+                    var locY:Int = 121
+                    for (y in 120 downTo 32) {
+                        if (isSafeLocation(world,x,y,z)){
+                            locY = y
+                        }
+                    }
+                    if (locY == 121) locY = 64
+                    submit {
+                        if (locY == 64){
+                            world.getBlockAt(x,locY,z).type = Material.NETHERRACK
+                            world.getBlockAt(x,locY+1,z).type = Material.AIR
+                            world.getBlockAt(x,locY+2,z).type = Material.AIR
+                        }
+                        p.teleportAsync(Location(world,x+0.5,locY+1.0,z+0.5))
+                    }
+                }
+                World.Environment.THE_END -> {
+                    var locY:Int = 71
+                    for (y in 70 downTo 32) {
+                        if (isSafeLocation(world,x,y,z)){
+                            locY = y
+                        }
+                    }
+                    if (locY == 71) locY = 64
+                    submit {
+                        if (locY == 64){
+                            world.getBlockAt(x,locY,z).type = Material.END_STONE
+                            world.getBlockAt(x,locY+1,z).type = Material.AIR
+                            world.getBlockAt(x,locY+2,z).type = Material.AIR
+                        }
+                        p.teleportAsync(Location(world,x+0.5,locY+1.0,z+0.5))
+                    }
+                }
+                else -> {
+                    //只考虑主世界了
+                    val y = world.getHighestBlockYAt(x,z)
+                    submit {
+                        if (!isSafeLocation(world,x,y,z)){
+                            world.getBlockAt(x,y,z).type = Material.STONE
+                            world.getBlockAt(x,y+1,z).type = Material.AIR
+                            world.getBlockAt(x,y+2,z).type = Material.AIR
+                        }
+                        p.teleportAsync(Location(world,x+0.5,y+1.0,z+0.5))
+                    }
+                }
+            }
+        }
+
+    }
+    private fun isSafeLocation(world: World, x: Int, y: Int, z: Int): Boolean {
+        val block = world.getBlockAt(x, y, z)
+        val blockAbove = world.getBlockAt(x, y+1, z)
+        val blockAbove2 = world.getBlockAt(x, y + 2, z)
+
+        // 检查传送位置是否安全（例如，方块下方是固体，上方是空气）
+        return (block.type != Material.AIR && block.type != Material.WATER && block.type != Material.LAVA
+                && blockAbove.type == Material.AIR && blockAbove2.type == Material.AIR)
     }
 }

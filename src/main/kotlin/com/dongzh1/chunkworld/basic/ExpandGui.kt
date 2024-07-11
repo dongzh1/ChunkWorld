@@ -5,7 +5,6 @@ import com.dongzh1.chunkworld.Listener
 import com.dongzh1.chunkworld.WorldEdit
 import com.dongzh1.chunkworld.basic.Biome.chinese
 import com.dongzh1.chunkworld.database.dao.ChunkDao
-import com.sk89q.worldedit.world.block.BlockTypes
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.hasItem
 import com.xbaimiao.easylib.util.hasLore
@@ -16,14 +15,11 @@ import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
 import org.bukkit.Bukkit
 import org.bukkit.Chunk
-import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.time.Duration
-import kotlin.concurrent.timer
-import kotlin.math.max
 
 class ExpandGui(private val p: Player,private val chunk: Chunk) {
     private var choose = 0
@@ -36,10 +32,11 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         //设置菜单大小为行
         basic.rows(4)
         basic.set(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
-            listOf("§c当前未选择区块!","§c此时确认将扩展空间，不生成区块","§a群系分布按照第1个区块分布"),-1))
+            listOf("§c当前未选择区块!","§a此时确认将扩展空间，按照第1个区块生成"),-1))
         basic.set(32,Item.build(Material.RED_CONCRETE,1,"§c再次抽取",
             listOf("§f消耗 §b1 §f个区块碎片重新组合区块"),-1))
-
+        basic.set(31,Item.build(Material.YELLOW_CONCRETE,1,"§4生成虚空",
+            listOf("§4点此将不改变此区块样貌§8(§c虚空§8)","§4但会将§b群系§4修改为","§4选择的区块同款§b群系"),-1))
         basic.onClick { event ->
             event.isCancelled = true
         }
@@ -123,8 +120,8 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         var n = 0
         val chunkSlot = listOf(11,13,15)
         chunkSlot.forEach { slot ->
-            val randomX = (0..500).random()
-            val randomZ = (0..500).random()
+            val randomX = (-1000..1000).random()
+            val randomZ = (-1000..1000).random()
             val resourceWorld = Bukkit.getWorld(ChunkWorld.inst.config.getString("Resource")!!)!!
             resourceWorld.getChunkAtAsync(randomX,randomZ).thenAccept {
                 //获取区块内的某个方块
@@ -173,9 +170,11 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         if (choose != 0) basic.set(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
             null,-1))
         else basic.set(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
-            listOf("§c当前未选择区块!","§c此时确认将扩展空间，不生成区块","§a群系分布按照第1个区块分布"),-1))
+            listOf("§c当前未选择区块!","§a此时确认将扩展空间，按照第1个区块生成"),-1))
         basic.set(32,Item.build(Material.RED_CONCRETE,1,"§c再次抽取",
             listOf("§f消耗 §b1 §f个区块碎片重新组合区块"),-1))
+        basic.set(31,Item.build(Material.YELLOW_CONCRETE,1,"§4生成虚空",
+            listOf("§4点此将不改变此区块样貌§8(§c虚空§8)","§4但会将§b群系§4修改为","§4选择的区块同款§b群系","§4不选择则为第1个"),-1))
         basic.set(11,item11)
         basic.set(13,item13)
         basic.set(15,item15)
@@ -223,7 +222,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             confirm(chunk1,chunk2,chunk3)
         }
         basic.onClick(32) {
-            cancel()
+            rebuild()
         }
         basic.onClose{
             if (!canClose) build(chunk1,chunk2,chunk3,it.view.getItem(11)!!,it.view.getItem(13)!!,it.view.getItem(15)!!)
@@ -239,14 +238,26 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             11 -> chunk1
             13 -> chunk2
             15 -> chunk3
-            else -> null
+            else -> chunk1
         }
-        if (sourceChunk != null){
-            WorldEdit.copyChunk(sourceChunk,chunk)
-        }else{
-            //先复制区块1
-            WorldEdit.copyChunk(chunk1,chunk)
+        WorldEdit.copyChunk(sourceChunk,chunk)
+        record()
+    }
+    private fun confirmVoid(chunk1: Chunk,chunk2: Chunk,chunk3: Chunk){
+        canClose = true
+        p.closeInventory()
+        //生成区块
+        val sourceChunk = when(choose){
+            11 -> chunk1
+            13 -> chunk2
+            15 -> chunk3
+            else -> chunk1
         }
+        WorldEdit.copyChunkBiome(sourceChunk,chunk)
+        record()
+
+    }
+    private fun record(){
         Listener.addChunkMap(p,chunk.x to chunk.z)
         val playerDao = Listener.getPlayerDaoMap(p.name)!!
         playerDao.chunkCount += 1
@@ -264,7 +275,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         p.showTitle(Title.title(Component.text("§e恭喜您"), Component.text("§f掌握了区块 ${chunk.x} ${chunk.z}"),
             Times.times(Duration.ofSeconds(1), Duration.ofSeconds(5), Duration.ofSeconds(1))))
     }
-    private fun cancel(){
+    private fun rebuild(){
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)
         if (ChunkWorld.inst.config.getInt("item.customModelData") == -1) {
             //判断有没有
@@ -299,7 +310,10 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             confirm(chunk1,chunk2,chunk3)
         }
         basic.onClick(32) {
-            cancel()
+            rebuild()
+        }
+        basic.onClick(31) {
+            confirmVoid(chunk1,chunk2,chunk3)
         }
     }
 

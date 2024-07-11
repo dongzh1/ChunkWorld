@@ -21,3 +21,5 @@ item:
   material: "STRUCTURE_VOID"
   #-1代表没有，代表不启用，使用原版的
   customModelData: -1
+#日期判断，用于重启时自动刷新资源世界
+date: "2024-07-10"

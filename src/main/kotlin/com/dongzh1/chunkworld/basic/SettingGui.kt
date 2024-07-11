@@ -1,21 +1,25 @@
 package com.dongzh1.chunkworld.basic
 
+import com.cryptomorin.xseries.XMaterial
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.Listener
 import com.xbaimiao.easylib.chat.TellrawJson
 import com.xbaimiao.easylib.ui.PaperBasic
+import com.xbaimiao.easylib.util.buildItem
 import com.xbaimiao.easylib.util.submit
 import net.kyori.adventure.text.Component
-import org.bukkit.Bukkit
-import org.bukkit.Material
+import org.bukkit.*
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemFlag
+import org.bukkit.persistence.PersistentDataType
 import java.util.UUID
 
 class SettingGui(private val p: Player,private val banPage:Int) {
     fun build() {
+        val world = Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}")
         val basic = PaperBasic(p, Component.text("世界设置"))
-        basic.rows(4)
+        basic.rows(6)
         val playerDao = Listener.getPlayerDaoMap(p.uniqueId)!!
         basic.set(4,Item.build(Material.PAINTING,1,"世界信息",
             listOf("",
@@ -86,6 +90,154 @@ class SettingGui(private val p: Player,private val banPage:Int) {
         for (i in banList.indices){
             val offlinePlayer = Bukkit.getOfflinePlayer(banList[i])
             basic.set(28+i,Item.head(offlinePlayer.name?:playerDao.name,"§a${offlinePlayer.name}", listOf("§b点击申请解除相互拉黑关系"),-1))
+        }
+
+        if (world != null){
+            basic.set(40,Item.build(Material.MOJANG_BANNER_PATTERN,1,"世界规则",
+                listOf("§f可以修改你的世界的规则","§f并附带有较为详细的说明"),-1))
+            basic.set(45, buildItem(Material.CREEPER_HEAD, builder = {
+                name = "§a生物破坏"
+                lore.addAll(listOf("§f对应规则:","§7mobGriefing","§f所有生物都不能破坏地形","§f包括苦力怕爆炸或村民收割作物",))
+                if (world.getGameRuleValue(GameRule.MOB_GRIEFING) == true) lore.add("§f当前状态:§a允许破坏")
+                else lore.add("§f当前状态:§c禁止破坏")
+            }))
+            basic.set(46, buildItem(Material.PHANTOM_SPAWN_EGG, builder = {
+                name = "§a生成幻翼"
+                lore.addAll(listOf("§f对应规则:","§7doInsomnia","§f幻翼是否会在夜间生成",))
+                if (world.getGameRuleValue(GameRule.DO_INSOMNIA) == true) lore.add("§f当前状态:§a允许生成")
+                else lore.add("§f当前状态:§c禁止生成")
+            }))
+            basic.set(47, buildItem(Material.CLOCK, builder = {
+                name = "§a昼夜更替"
+                lore.addAll(listOf("§f对应规则:","§7doDaylightCycle","§f是否进行昼夜更替和月相变化",))
+                if (world.getGameRuleValue(GameRule.DO_DAYLIGHT_CYCLE) == true) lore.add("§f当前状态:§a时间走动")
+                else lore.add("§f当前状态:§c时间停止")
+            }))
+            basic.set(48, buildItem(Material.ELYTRA, builder = {
+                name = "§a天气定格"
+                lore.addAll(listOf("§f对应规则:","§7doWeatherCycle","§f天气是否变化",))
+                if (world.getGameRuleValue(GameRule.DO_WEATHER_CYCLE) == true) lore.add("§f当前状态:§a天气变化")
+                else lore.add("§f当前状态:§c天气定格")
+            }))
+            basic.set(49, buildItem(Material.BLUE_ICE, builder = {
+                name = "§a液体流动"
+                lore.addAll(listOf("§f对应规则:","§8dong自定义的规则","§f世界的液体是否流动",))
+
+                //先看世界有没有存这个key，没有说明没有添加规则，可以流动
+                if (world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_fluid")!!)){
+                    if (world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_fluid")!!,PersistentDataType.BOOLEAN) == true){
+                        //有标记，且可以流动
+                        lore.add("§f当前状态:§a液体流动")
+                    }else lore.add("§f当前状态:§c不再流动")
+                } else lore.add("§f当前状态:§a液体流动")
+
+            }))
+            basic.set(50, buildItem(Material.HONEY_BOTTLE, builder = {
+                name = "§a游戏难度"
+                lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§b和平","§c和平困难下所有怪物会被清空","§c请慎重决定"))
+            }))
+            basic.set(51, buildItem(Material.GLASS_BOTTLE, builder = {
+                name = "§a游戏难度"
+                lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§a简单","§f比较简单的怪物强度"))
+            }))
+            basic.set(52, buildItem(Material.EXPERIENCE_BOTTLE, builder = {
+                name = "§a游戏难度"
+                lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§6普通","§f有一定难度的怪物水平"))
+            }))
+            basic.set(53, buildItem(Material.DRAGON_BREATH, builder = {
+                name = "§a游戏难度"
+                lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§c困难","§c最高的难度","§f有些事件只能在这个难度触发"))
+            }))
+            when(world.difficulty){
+                Difficulty.PEACEFUL ->{
+                    val item = buildItem(Material.HONEY_BOTTLE, builder = {
+                        name = "§a游戏难度"
+                        lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§b和平","§c和平困难下所有怪物会被清空","§c请慎重决定"))
+                    })
+                    item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                    item.addItemFlags(ItemFlag.HIDE_ENCHANTS)
+                    basic.set(50,item)
+                }
+                Difficulty.EASY ->{
+                    val item = buildItem(Material.GLASS_BOTTLE, builder = {
+                        name = "§a游戏难度"
+                        lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§a简单","§f比较简单的怪物强度"))
+                    })
+                    item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                    item.addItemFlags(ItemFlag.HIDE_ENCHANTS)
+                    basic.set(51,item)
+                }
+                Difficulty.NORMAL ->{
+                    val item = buildItem(Material.EXPERIENCE_BOTTLE, builder = {
+                        name = "§a游戏难度"
+                        lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§6普通","§f有一定难度的怪物水平"))
+                    })
+                    item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                    item.addItemFlags(ItemFlag.HIDE_ENCHANTS)
+                    basic.set(52,item)
+                }
+                Difficulty.HARD ->{
+                    val item = buildItem(Material.DRAGON_BREATH, builder = {
+                        name = "§a游戏难度"
+                        lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§c困难","§c最高的难度","§f有些事件只能在这个难度触发"))
+                    })
+                    item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                    item.addItemFlags(ItemFlag.HIDE_ENCHANTS)
+                    basic.set(53,item)
+                }
+            }
+            basic.onClick(45) {
+                p.closeInventory()
+                p.sendMessage("§a世界规则已修改")
+                world.setGameRule(GameRule.MOB_GRIEFING,!world.getGameRuleValue(GameRule.MOB_GRIEFING)!!)
+            }
+            basic.onClick(46) {
+                p.closeInventory()
+                p.sendMessage("§a世界规则已修改")
+                world.setGameRule(GameRule.DO_INSOMNIA,!world.getGameRuleValue(GameRule.DO_INSOMNIA)!!)
+            }
+            basic.onClick(47) {
+                p.closeInventory()
+                p.sendMessage("§a世界规则已修改")
+                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE,!world.getGameRuleValue(GameRule.DO_DAYLIGHT_CYCLE)!!)
+            }
+            basic.onClick(48) {
+                p.closeInventory()
+                p.sendMessage("§a世界规则已修改")
+                world.setGameRule(GameRule.DO_WEATHER_CYCLE,!world.getGameRuleValue(GameRule.DO_WEATHER_CYCLE)!!)
+            }
+            basic.onClick(49) {
+                p.closeInventory()
+                p.sendMessage("§a世界规则已修改")
+                //先看世界有没有存这个key，没有说明没有添加规则，可以流动
+                if (world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_fluid")!!)){
+                    //有标记
+                    if (world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_fluid")!!,PersistentDataType.BOOLEAN) == true){
+                        //标记是可以流动，改为不行
+                        world.persistentDataContainer.set(NamespacedKey.fromString("chunkworld_fluid")!!,PersistentDataType.BOOLEAN,false)
+                    }else world.persistentDataContainer.set(NamespacedKey.fromString("chunkworld_fluid")!!,PersistentDataType.BOOLEAN,true)
+                } else world.persistentDataContainer.set(NamespacedKey.fromString("chunkworld_fluid")!!,PersistentDataType.BOOLEAN,false)
+            }
+            basic.onClick(50) {
+                p.closeInventory()
+                p.sendMessage("§a世界难度已修改")
+                world.difficulty = Difficulty.PEACEFUL
+            }
+            basic.onClick(51) {
+                p.closeInventory()
+                p.sendMessage("§a世界难度已修改")
+                world.difficulty = Difficulty.EASY
+            }
+            basic.onClick(52) {
+                p.closeInventory()
+                p.sendMessage("§a世界难度已修改")
+                world.difficulty = Difficulty.NORMAL
+            }
+            basic.onClick(53) {
+                p.closeInventory()
+                p.sendMessage("§a世界难度已修改")
+                world.difficulty = Difficulty.HARD
+            }
         }
         basic.onClick { event ->
             event.isCancelled = true

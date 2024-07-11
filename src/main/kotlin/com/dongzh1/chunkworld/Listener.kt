@@ -2,8 +2,13 @@ package com.dongzh1.chunkworld
 
 import com.destroystokyo.paper.event.player.PlayerPostRespawnEvent
 import com.dongzh1.chunkworld.basic.ConfirmExpandGui
+import com.dongzh1.chunkworld.basic.Item
+import com.dongzh1.chunkworld.basic.PortalGui
+import com.dongzh1.chunkworld.command.Tp
 import com.dongzh1.chunkworld.database.dao.ChunkDao
 import com.dongzh1.chunkworld.database.dao.PlayerDao
+import com.dongzh1.chunkworld.listener.ChunkTeleportCause
+import com.xbaimiao.easylib.chat.TellrawJson
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.hasLore
@@ -13,11 +18,15 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
+import net.kyori.adventure.title.TitlePart
 import org.bukkit.*
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
+import org.bukkit.event.block.BlockFromToEvent
+import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.block.FluidLevelChangeEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityTargetEvent
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent
@@ -25,10 +34,13 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.player.*
 import org.bukkit.event.vehicle.VehicleDamageEvent
+import org.bukkit.persistence.PersistentDataType
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import java.io.File
 import java.time.Duration
+import java.util.Random
 import java.util.UUID
+import kotlin.math.abs
 import kotlin.math.max
 
 object Listener:Listener {
@@ -111,6 +123,28 @@ object Listener:Listener {
     @EventHandler
     fun onSpawn(e:PlayerSpawnLocationEvent){
 
+    }
+    @EventHandler
+    fun waterFlow(e:BlockFromToEvent){
+        val world = e.block.world
+        if (e.block.type == Material.WATER ||
+            e.block.type == Material.LAVA ||
+            e.block.type == Material.WATER_CAULDRON ||
+            e.block.type == Material.LAVA_CAULDRON) {
+            //先看世界有没有存这个key，没有说明没有添加规则，可以流动
+            if (world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_fluid")!!)){
+                if (world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_fluid")!!,PersistentDataType.BOOLEAN) == true){
+                    //有标记，且可以流动
+                    return
+                }else {
+                    //不能流动
+                    e.isCancelled = true
+                    return
+                }
+            } else {
+                return
+            }
+        }
     }
     @EventHandler
     fun onJoin(e:PlayerJoinEvent){
@@ -239,7 +273,82 @@ object Listener:Listener {
         }
     }
     @EventHandler
+    fun onBlockPlaced(e:BlockPlaceEvent){
+        if (e.itemInHand.itemMeta == Item.voidItem().itemMeta){
+            //放置下虚空生成器了
+            val blockState = e.blockPlaced.state
+            val location = e.blockPlaced.location
+            var n = 0
+            val task = submit(delay = 1,period = 20, maxRunningNum = 11) {
+                //道具被毁
+                if (location.block.state != blockState){
+                    cancel()
+                    e.player.showTitle(Title.title(Component.text("§d生成器破坏"),
+                        Component.text("§a虚空化改造已停止"),
+                        Times.times(Duration.ofSeconds(1),
+                            Duration.ofSeconds(2),
+                            Duration.ofSeconds(1))))
+                    return@submit
+                }
+                if(n < 10){
+                    e.player.showTitle(Title.title(Component.text("§4\uD83D\uDCA5§c虚空吞噬一切§4\uD83D\uDCA5"),
+                        Component.text("§a ${10-n} 秒后缔造虚空,若想取消请用锄头§4破坏§a生成器!"),
+                        Times.times(Duration.ofSeconds(1),
+                            Duration.ofSeconds(2),
+                            Duration.ofSeconds(1))))
+                }
+                if (n == 10){
+                    e.player.showTitle(Title.title(Component.text("§c结束了"),
+                        Component.text("§a虚空已吞噬区块"),
+                        Times.times(Duration.ofSeconds(1),
+                            Duration.ofSeconds(2),
+                            Duration.ofSeconds(1))))
+                    WorldEdit.setVoid(e.blockPlaced.chunk)
+                }
+                n++
+            }
+            //放置虚空生成器
+
+        }
+
+
+
+    }
+    @EventHandler
     fun onInteract(e:PlayerInteractEvent){
+
+        //传送门
+        if (e.action == Action.RIGHT_CLICK_BLOCK && (e.clickedBlock?.type == Material.NETHER_PORTAL || e.clickedBlock?.type == Material.END_PORTAL ) ){
+            e.isCancelled = true
+            PortalGui(e.player).build()
+            return
+        }
+
+        //地狱邀请函和末地邀请函
+        if (e.item == Item.netherItem() || e.item == Item.endItem()){
+            e.isCancelled = true
+            return
+        }
+        //虚空生成器
+
+        if (e.item?.itemMeta == Item.voidItem().itemMeta){
+            e.isCancelled = true
+            if (e.player.world.name != ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"){
+                e.player.sendMessage("§c只能在自己的世界使用")
+                return
+            }
+            if (e.action == Action.RIGHT_CLICK_BLOCK && e.player.isSneaking){
+                //右键放置
+                val block = e.clickedBlock
+                if (block != null){
+                    e.isCancelled = false
+                }
+            }else{
+                e.player.sendMessage("§c请在潜行状态右键你想改变的区块")
+                return
+            }
+        }
+
         //如果是拓展物品，也要取消
         var isItem = false
         if (e.item?.type == Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)){
@@ -383,9 +492,46 @@ object Listener:Listener {
      */
     @EventHandler
     fun worldTp(e: PlayerTeleportEvent) {
+        //是插件允许的传送就不再检查，用于资源世界传送
+        if (e.cause == ChunkTeleportCause.MENU_TELEPORT) return
         //传送不涉及世界切换就返回
         if (e.to.world == e.from.world) return
         val player = e.player
+        //从其他世界到资源世界
+        if (e.to.world.name == ((ChunkWorld.inst.config.getString("Resource") ?: "chunkworld") + "_zy")){
+            //判断区块等级
+            val dao = getPlayerDaoMap(e.player.name)
+            if (dao!!.chunkCount >=9){
+                e.player.sendMessage("§c您成功传送到资源世界,请尽可能活下去")
+                return
+            }else{
+                e.isCancelled = true
+                e.player.sendMessage("§c传送取消,去到资源世界需要解锁至少9个区块")
+                return
+            }
+        }
+        if (e.to.world.name == "world_nether"){
+            //消耗邀请函并传送
+            if (Item.deduct(Item.netherItem(),e.player,1)){
+                e.player.sendMessage("§a你跨世界传送到了§4资源地狱§a,消耗 §4地狱邀请函§a x1")
+                return
+            }else{
+                e.player.sendMessage("§c你没有§4地狱邀请函，无法跨世界传送到资源地狱")
+                e.isCancelled = true
+                return
+            }
+        }
+        if (e.to.world.name == "world_the_end"){
+            //消耗邀请函并传送
+            if (Item.deduct(Item.endItem(),e.player,1)){
+                e.player.sendMessage("§a你跨世界传送到了§5资源末地§a,消耗 §5末地邀请函§a x1")
+                return
+            }else{
+                e.player.sendMessage("§c你没有§5末地邀请函，无法跨世界传送到资源末地")
+                e.isCancelled = true
+                return
+            }
+        }
         //不是玩家世界就不管
         if (!e.to.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
         //如果是自己的世界，那也没啥好取消的
@@ -437,7 +583,7 @@ object Listener:Listener {
             player.showTitle(Title.title(Component.text("§b神奇小黑屋"),
                 Component.text("§f不会建筑的dong默默路过"),
                 Times.times(Duration.ofSeconds(1),
-                    Duration.ofSeconds(3),
+                    Duration.ofSeconds(2),
                     Duration.ofSeconds(1))))
             return
         }
@@ -467,8 +613,11 @@ object Listener:Listener {
      */
     @EventHandler
     fun portal(e:PlayerPortalEvent){
+        e.isCancelled = true
+        e.player.showTitle(Title.title(Component.text("§d跨界传送"), Component.text("§f请退出传送门范围,并§8[§b右键§8]§f传送门选择目标"),
+            Times.times(Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(1))))
+        /*
         if (e.player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)){
-            e.isCancelled = true
             val locationString = ChunkWorld.inst.config.getString("Location")!!
             val worldName = locationString.split(",")[0]
             val x = locationString.split(",")[1].toDouble()
@@ -478,14 +627,18 @@ object Listener:Listener {
             val pitch = locationString.split(",")[5].toFloat()
             val location = Location(Bukkit.getWorld(worldName),x, y, z, yaw, pitch)
             e.player.teleportAsync(location)
+            return
         }
         if (e.player.world.name == "world"){
-            e.isCancelled = true
-            val playerDao = getPlayerDaoMap(e.player.uniqueId)!!
+            val playerDao = getPlayerDaoMap(e.player.name)!!
             val location = Location(Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
                 playerDao.x(),playerDao.y(),playerDao.z(),playerDao.yaw(),playerDao.pitch())
             e.player.teleportAsync(location)
         }
+
+         */
+
+
     }
     /**
      * 玩家死亡重生,在自己家园死就在自己家园生

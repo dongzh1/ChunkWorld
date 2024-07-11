@@ -3,14 +3,12 @@ package com.dongzh1.chunkworld.command
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.Listener
 import com.dongzh1.chunkworld.WorldEdit
+import com.dongzh1.chunkworld.basic.Item
 import com.dongzh1.chunkworld.basic.ListGui
 import com.xbaimiao.easylib.chat.TellrawJson
 import com.xbaimiao.easylib.command.ArgNode
 import com.xbaimiao.easylib.command.command
-import com.xbaimiao.easylib.util.CommandBody
-import com.xbaimiao.easylib.util.ECommandHeader
-import com.xbaimiao.easylib.util.displayName
-import com.xbaimiao.easylib.util.submit
+import com.xbaimiao.easylib.util.*
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.WorldCreator
@@ -281,8 +279,72 @@ object Command {
             }
         }
     }
+
+    /**
+     * 怪物攻城
+     */
+    @CommandBody
+    val monster = command<CommandSender>("monster"){
+        description = "对一个玩家世界强行发起怪物攻城"
+        permission = "chunkworld.admin"
+        players {
+            exec {
+
+            }
+        }
+    }
+
+    /**
+     * 把玩家所在区块改为虚空
+     */
+    @CommandBody
+    val voiditem = command<CommandSender>("voiditem"){
+        description = "给人一个虚空道具"
+        permission = "chunkworld.admin"
+        players {
+            exec {
+                val p = valueOf(it)
+                if (p == null){
+                    sender.sendMessage("§c此玩家不在线")
+                    return@exec
+                }
+                p.giveItem(Item.voidItem(),true)
+            }
+        }
+    }
+    @CommandBody
+    val netheritem = command<CommandSender>("netheritem"){
+        description = "给人一个地狱邀请函"
+        permission = "chunkworld.admin"
+        players {
+            exec {
+                val p = valueOf(it)
+                if (p == null){
+                    sender.sendMessage("§c此玩家不在线")
+                    return@exec
+                }
+                p.giveItem(Item.netherItem(),true)
+            }
+        }
+    }
+    @CommandBody
+    val enditem = command<CommandSender>("enditem"){
+        description = "给人一个末地邀请函"
+        permission = "chunkworld.admin"
+        players {
+            exec {
+                val p = valueOf(it)
+                if (p == null){
+                    sender.sendMessage("§c此玩家不在线")
+                    return@exec
+                }
+                p.giveItem(Item.endItem(),true)
+            }
+        }
+    }
     @CommandBody
     val unload = command<CommandSender>("unload"){
+        description = "极度危险指令，强制卸载世界，请勿使用，后果严重"
         permission = "chunkworld.admin"
         worlds {
             exec {
@@ -295,6 +357,7 @@ object Command {
      */
     @CommandBody
     val extendold = command<Player>("extendold"){
+        description = "极度危险指令，继承老世界，请勿使用，后果严重"
         permission = "chunkworld.admin"
         offlinePlayers {
             exec {
@@ -332,6 +395,7 @@ object Command {
     }
     @CommandBody
     val clearinv = command<Player>("clearinv"){
+        description = "极度危险指令，清空容器，请勿使用，后果严重"
         permission = "chunkworld.admin"
         x { x1Arg->
             x { x2Arg->

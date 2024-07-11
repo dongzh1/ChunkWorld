@@ -32,7 +32,7 @@ object WorldEdit {
      * @param pos2 区域的第二个位置
      * @param blockType 指定的方块
      */
-    fun setBlock(pos1:Location, pos2:Location, blockType: BlockType) {
+    private fun setBlock(pos1:Location, pos2:Location, blockType: BlockType) {
             TaskManager.taskManager().async {
                 val world = BukkitAdapter.adapt(pos1.world)
                 val region = CuboidRegion(
@@ -47,6 +47,24 @@ object WorldEdit {
                     session.setBlocks(region as Region, blockType.defaultState)
                 }
             }
+    }
+    fun setVoid(chunk: Chunk){
+        val pos1 = Location(chunk.world,chunk.x*16.toDouble(),-64.0,chunk.z*16.toDouble())
+        val pos2 = Location(chunk.world,chunk.x*16.toDouble()+15,319.0,chunk.z*16.toDouble()+15)
+        TaskManager.taskManager().async {
+            val world = BukkitAdapter.adapt(pos1.world)
+            val region = CuboidRegion(
+                BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
+                BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
+            )
+            // 创建一个编辑会话
+            val editSession: EditSession = WorldEdit.getInstance().newEditSessionBuilder().world(world).fastMode(true).build()
+
+            // 替换区域内的所有方块为指定方块
+            editSession.use { session ->
+                session.setBlocks(region as Region, BlockTypes.AIR!!.defaultState)
+            }
+        }
     }
     /**
      * 替换区域内的方块为指定方块
@@ -74,21 +92,36 @@ object WorldEdit {
      */
     fun copyChunk(chunk:Chunk,targetChunk:Chunk){
         TaskManager.taskManager().async{
-            val weWorld = BukkitAdapter.adapt(chunk.world)
-            val region = CuboidRegion(
-                weWorld,
-                BlockVector3.at(chunk.x*16,-64,chunk.z*16),
-                BlockVector3.at(chunk.x*16+15,319,chunk.z*16+15)
-            )
-            val clipboard = BlockArrayClipboard(region)
-            region.compile(clipboard,weWorld)
-            clipboard.paste(
-                BukkitAdapter.adapt(targetChunk.world),
-                BlockVector3.at(targetChunk.x*16,-64,targetChunk.z*16),
-                false,
-                true,
-                null
-            )
+            copy(chunk, targetChunk)
+        }
+    }
+
+    private fun copy(chunk:Chunk,targetChunk:Chunk){
+        val weWorld = BukkitAdapter.adapt(chunk.world)
+        val region = CuboidRegion(
+            weWorld,
+            BlockVector3.at(chunk.x*16,-64,chunk.z*16),
+            BlockVector3.at(chunk.x*16+15,319,chunk.z*16+15)
+        )
+        val clipboard = BlockArrayClipboard(region)
+        region.compile(clipboard,weWorld)
+        clipboard.paste(
+            BukkitAdapter.adapt(targetChunk.world),
+            BlockVector3.at(targetChunk.x*16,-64,targetChunk.z*16),
+            false,
+            true,
+            null
+        )
+    }
+    /**
+     * 复制群系
+     */
+    fun copyChunkBiome(chunk:Chunk,targetChunk:Chunk){
+        TaskManager.taskManager().async{
+            copy(chunk, targetChunk)
+            val pos1 = Location(targetChunk.world,targetChunk.x*16.toDouble(),-64.0,targetChunk.z*16.toDouble())
+            val pos2 = Location(targetChunk.world,targetChunk.x*16.toDouble()+15,319.0,targetChunk.z*16.toDouble()+15)
+            setBlock(pos1,pos2,BlockTypes.AIR!!)
         }
     }
     private fun Region.compile(clipboard: BlockArrayClipboard,world: com.sk89q.worldedit.world.World){
