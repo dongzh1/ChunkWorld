@@ -111,6 +111,7 @@ object Tp {
             target = Location(world, playerDao!!.x(), playerDao!!.y(), playerDao!!.z(), playerDao!!.yaw(), playerDao!!.pitch())
         }
     }
+
     fun randomTp(p:Player,world: World,range:Int){
         p.sendMessage("")
         val x = Random.nextInt(-range,range)
@@ -123,11 +124,12 @@ object Tp {
                     for (y in 120 downTo 32) {
                         if (isSafeLocation(world,x,y,z)){
                             locY = y
+                            break
                         }
                     }
                     if (locY == 121) locY = 64
                     submit {
-                        if (locY == 64){
+                        if (locY == 64 && !isSafeLocation(world,x,locY,z)){
                             world.getBlockAt(x,locY,z).type = Material.NETHERRACK
                             world.getBlockAt(x,locY+1,z).type = Material.AIR
                             world.getBlockAt(x,locY+2,z).type = Material.AIR
@@ -140,11 +142,12 @@ object Tp {
                     for (y in 70 downTo 32) {
                         if (isSafeLocation(world,x,y,z)){
                             locY = y
+                            break
                         }
                     }
                     if (locY == 71) locY = 64
                     submit {
-                        if (locY == 64){
+                        if (locY == 64 && !isSafeLocation(world,x,locY,z)){
                             world.getBlockAt(x,locY,z).type = Material.END_STONE
                             world.getBlockAt(x,locY+1,z).type = Material.AIR
                             world.getBlockAt(x,locY+2,z).type = Material.AIR
@@ -169,12 +172,12 @@ object Tp {
 
     }
     private fun isSafeLocation(world: World, x: Int, y: Int, z: Int): Boolean {
-        val block = world.getBlockAt(x, y, z)
-        val blockAbove = world.getBlockAt(x, y+1, z)
-        val blockAbove2 = world.getBlockAt(x, y + 2, z)
+        val block = world.getBlockAt(x, y, z).type
+        val blockAbove = world.getBlockAt(x, y+1, z).type
+        val blockAbove2 = world.getBlockAt(x, y + 2, z).type
 
         // 检查传送位置是否安全（例如，方块下方是固体，上方是空气）
-        return (block.type != Material.AIR && block.type != Material.WATER && block.type != Material.LAVA
-                && blockAbove.type == Material.AIR && blockAbove2.type == Material.AIR)
+        return (!block.isAir && block != Material.WATER && block != Material.LAVA
+                && blockAbove.isAir && blockAbove2.isAir)
     }
 }

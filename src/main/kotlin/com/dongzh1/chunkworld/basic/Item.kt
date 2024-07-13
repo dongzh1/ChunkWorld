@@ -55,9 +55,10 @@ object Item {
     /**
      * 地狱邀请函
      */
-    fun netherItem():ItemStack{
+    fun netherItem(p:Player?=null):ItemStack{
         return buildItem(Material.PAPER, builder = {
             name = "§4地狱邀请函"
+            if (p != null) lore.add("§c已绑定${p.name}")
             lore.add("§f进入资源地狱会消耗邀请函")
             lore.add("§f右键传送门打开传送菜单")
             lore.add("§f被其他玩家邀请传送到地狱也会消耗")
@@ -66,9 +67,10 @@ object Item {
     /**
      * 末地邀请函
      */
-    fun endItem():ItemStack{
+    fun endItem(p:Player?= null):ItemStack{
         return buildItem(Material.PAPER, builder = {
             name = "§5末地邀请函"
+            if (p != null) lore.add("§c已绑定${p.name}")
             lore.add("§f进入资源末地会消耗邀请函")
             lore.add("§f右键传送门打开传送菜单")
             lore.add("§f被其他玩家邀请传送到末地也会消耗")

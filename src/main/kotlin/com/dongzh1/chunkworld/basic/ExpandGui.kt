@@ -15,11 +15,14 @@ import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
 import org.bukkit.Bukkit
 import org.bukkit.Chunk
+import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.block.Container
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.time.Duration
+import kotlin.random.Random
 
 class ExpandGui(private val p: Player,private val chunk: Chunk) {
     private var choose = 0
@@ -36,7 +39,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         basic.set(32,Item.build(Material.RED_CONCRETE,1,"§c再次抽取",
             listOf("§f消耗 §b1 §f个区块碎片重新组合区块"),-1))
         basic.set(31,Item.build(Material.YELLOW_CONCRETE,1,"§4生成虚空",
-            listOf("§4点此将不改变此区块样貌§8(§c虚空§8)","§4但会将§b群系§4修改为","§4选择的区块同款§b群系"),-1))
+            listOf("§4点此将不改变此区块样貌§8(§c虚空§8)","§4但会将§b群系§4修改为","§4选择的区块同款§b群系","§c此方法不会生成宝箱"),-1))
         basic.onClick { event ->
             event.isCancelled = true
         }
@@ -174,7 +177,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         basic.set(32,Item.build(Material.RED_CONCRETE,1,"§c再次抽取",
             listOf("§f消耗 §b1 §f个区块碎片重新组合区块"),-1))
         basic.set(31,Item.build(Material.YELLOW_CONCRETE,1,"§4生成虚空",
-            listOf("§4点此将不改变此区块样貌§8(§c虚空§8)","§4但会将§b群系§4修改为","§4选择的区块同款§b群系","§4不选择则为第1个"),-1))
+            listOf("§4点此将不改变此区块样貌§8(§c虚空§8)","§4但会将§b群系§4修改为","§4选择的区块同款§b群系","§4不选择则为第1个","§c此方法不会生成宝箱"),-1))
         basic.set(11,item11)
         basic.set(13,item13)
         basic.set(15,item15)
@@ -240,8 +243,10 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             15 -> chunk3
             else -> chunk1
         }
-        WorldEdit.copyChunk(sourceChunk,chunk)
+        WorldEdit.copyChunk(sourceChunk,chunk,p)
         record()
+        p.showTitle(Title.title(Component.text("§e恭喜您"), Component.text("§f区块 ${chunk.x} ${chunk.z} 已掌握,在0层以下已生成§b区块宝箱"),
+            Times.times(Duration.ofSeconds(1), Duration.ofSeconds(5), Duration.ofSeconds(1))))
     }
     private fun confirmVoid(chunk1: Chunk,chunk2: Chunk,chunk3: Chunk){
         canClose = true
@@ -255,7 +260,8 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         }
         WorldEdit.copyChunkBiome(sourceChunk,chunk)
         record()
-
+        p.showTitle(Title.title(Component.text("§e恭喜您"), Component.text("§f区块 ${chunk.x} ${chunk.z} 已掌握,但虚空区块不生成§b宝箱"),
+            Times.times(Duration.ofSeconds(1), Duration.ofSeconds(5), Duration.ofSeconds(1))))
     }
     private fun record(){
         Listener.addChunkMap(p,chunk.x to chunk.z)
@@ -272,8 +278,6 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
         }
         //生成屏障
         WorldEdit.setBarrier(Listener.getChunkMap(p)!!,chunk.x to chunk.z,chunk.world)
-        p.showTitle(Title.title(Component.text("§e恭喜您"), Component.text("§f掌握了区块 ${chunk.x} ${chunk.z}"),
-            Times.times(Duration.ofSeconds(1), Duration.ofSeconds(5), Duration.ofSeconds(1))))
     }
     private fun rebuild(){
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)

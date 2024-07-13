@@ -15,6 +15,7 @@ import com.xbaimiao.easylib.util.ShortUUID
 import com.xbaimiao.easylib.util.plugin
 import com.xbaimiao.easylib.util.registerListener
 import com.xbaimiao.easylib.util.submit
+import net.kyori.adventure.text.Component
 import org.bukkit.*
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -75,7 +76,22 @@ class ChunkWorld : EasyPlugin() {
         Command.wban.register()
         //加载资源世界，用于获取区块和探索
         loadWorlds(config.getString("Resource")?:"chunkworld")
+        //每晚3点关服
+        submit(period = 20*60) {
+            val currentTime = LocalTime.now()
+            val targetTime = LocalTime.of(3, 0)
+            val warningTime = targetTime.minusMinutes(1)
 
+            when {
+                currentTime.hour == warningTime.hour && currentTime.minute == warningTime.minute -> {
+                    Bukkit.broadcast(Component.text("警告: 像素物语将在1分钟后进行每日重启！"))
+                }
+                currentTime.hour == targetTime.hour && currentTime.minute == targetTime.minute -> {
+                    Bukkit.broadcast(Component.text("警告: 像素物语重启中..."))
+                    Bukkit.shutdown()
+                }
+            }
+        }
 
 
     }

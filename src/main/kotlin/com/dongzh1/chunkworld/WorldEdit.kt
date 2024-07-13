@@ -1,5 +1,7 @@
 package com.dongzh1.chunkworld
 
+import com.dongzh1.chunkworld.basic.Baoxiang
+import com.dongzh1.chunkworld.basic.Item
 import com.fastasyncworldedit.core.Fawe
 import com.fastasyncworldedit.core.util.TaskManager
 import com.sk89q.worldedit.EditSession
@@ -18,12 +20,17 @@ import com.sk89q.worldedit.session.request.RequestSelection
 import com.sk89q.worldedit.world.block.BaseBlock
 import com.sk89q.worldedit.world.block.BlockType
 import com.sk89q.worldedit.world.block.BlockTypes
+import com.xbaimiao.easylib.util.buildItem
+import com.xbaimiao.easylib.util.submit
 import org.bukkit.Bukkit
 import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.Block
+import org.bukkit.block.Container
+import org.bukkit.entity.Player
+import kotlin.random.Random
 
 object WorldEdit {
     /**
@@ -90,9 +97,13 @@ object WorldEdit {
      * @param chunk 区块
      * @param targetChunk 目标区块
      */
-    fun copyChunk(chunk:Chunk,targetChunk:Chunk){
+    fun copyChunk(chunk:Chunk,targetChunk:Chunk,p:Player? = null){
         TaskManager.taskManager().async{
             copy(chunk, targetChunk)
+            //生成宝藏
+            if (p != null){
+                addItems(targetChunk,p)
+            }
         }
     }
 
@@ -220,5 +231,27 @@ object WorldEdit {
         for (region in barrierRegions){
             setBlock(region.first,region.second,BlockTypes.BARRIER!!)
         }
+
+    }
+    private fun addItems(chunk: Chunk,p: Player){
+        submit {
+            val block = chunk.getBlock(Random.nextInt(0,16), Random.nextInt(-60,-1), Random.nextInt(0,16))
+            block.type = Material.BARREL
+            val state = block.state as Container
+            for ( i  in 0.. Random.nextInt(1,6)){
+                state.inventory.addItem(Item.netherItem(p))
+            }
+            for ( i  in 0.. Random.nextInt(1,4)){
+                state.inventory.addItem(Item.endItem(p))
+            }
+            for (i in 0..Random.nextInt(1,20)){
+                val item = buildItem(Baoxiang.entries.toTypedArray().random().material, builder = {amount = Random.nextInt(1,16)})
+                state.inventory.addItem(item)
+            }
+            Bukkit.getConsoleSender().sendMessage("某人的区块拓展了，宝箱位置在 ${block.location}")
+        }
+    }
+    private fun chooseMaterial(){
+
     }
 }

@@ -323,7 +323,7 @@ object Command {
                     sender.sendMessage("§c此玩家不在线")
                     return@exec
                 }
-                p.giveItem(Item.netherItem(),true)
+                p.giveItem(Item.netherItem(p),true)
             }
         }
     }
@@ -338,7 +338,7 @@ object Command {
                     sender.sendMessage("§c此玩家不在线")
                     return@exec
                 }
-                p.giveItem(Item.endItem(),true)
+                p.giveItem(Item.endItem(p),true)
             }
         }
     }

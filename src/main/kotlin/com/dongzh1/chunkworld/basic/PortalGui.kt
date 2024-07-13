@@ -54,18 +54,22 @@ class PortalGui(private val p: Player) {
             lore.add("§f随机传送到资源地狱世界")
             lore.add("§f使用条件:")
             lore.add("§f消耗1张§4地狱邀请函")
+            lore.add("§f邀请函可通过扩展区块获得")
             lore.add("§f资源地狱每日§a3:00§f更新")
             lore.add("§f一旦死亡将会回到你的世界")
             lore.add("§a探索不易,苟命要紧")
+            lore.add("§7建议携带大量建材,毕竟你可能出生在岩浆湖")
         }))
         basic.set(4, buildItem(Material.END_STONE, builder = {
             name = "§5资源末地"
             lore.add("§f随机传送到资源地狱世界")
             lore.add("§f使用条件:")
             lore.add("§f消耗1张§5末地邀请函")
+            lore.add("§f邀请函可通过扩展区块获得")
             lore.add("§f资源地狱每日§a3:00§f更新")
             lore.add("§f一旦死亡将会回到你的世界")
             lore.add("§a探索不易,苟命要紧")
+            lore.add("§7建议携带大量建材,毕竟你可能出生在虚空")
         }))
         basic.set(8,Item.build(Material.BARRIER
             ,1,"§c取消传送"
@@ -110,7 +114,7 @@ class PortalGui(private val p: Player) {
         }
         basic.onClick(3) {
             p.closeInventory()
-            if (p.inventory.hasItem(Item.netherItem(),1)){
+            if (p.inventory.hasItem(Item.netherItem(p),1) || p.inventory.hasItem(Item.netherItem(),1)){
                 p.sendMessage("§a正在为您搜寻合适的传送点...")
                 Tp.randomTp(p,Bukkit.getWorld("world_nether")!!,10000)
             }else{
@@ -119,7 +123,7 @@ class PortalGui(private val p: Player) {
         }
         basic.onClick(4) {
             p.closeInventory()
-            if (p.inventory.hasItem(Item.endItem(),1)){
+            if (p.inventory.hasItem(Item.endItem(p),1) || p.inventory.hasItem(Item.endItem(),1)){
                 p.sendMessage("§a正在为您搜寻合适的传送点...")
                 Tp.randomTp(p,Bukkit.getWorld("world_the_end")!!,100)
             }else{

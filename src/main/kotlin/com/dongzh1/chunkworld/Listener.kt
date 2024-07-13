@@ -11,17 +11,22 @@ import com.dongzh1.chunkworld.listener.ChunkTeleportCause
 import com.xbaimiao.easylib.chat.TellrawJson
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
+import com.xbaimiao.easylib.util.buildItem
 import com.xbaimiao.easylib.util.hasLore
 import com.xbaimiao.easylib.util.submit
 import io.papermc.paper.event.player.AsyncChatEvent
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
 import net.kyori.adventure.title.TitlePart
 import org.bukkit.*
+import org.bukkit.block.Chest
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockFromToEvent
@@ -34,6 +39,8 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.player.*
 import org.bukkit.event.vehicle.VehicleDamageEvent
+import org.bukkit.event.world.ChunkLoadEvent
+import org.bukkit.event.world.ChunkPopulateEvent
 import org.bukkit.persistence.PersistentDataType
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import java.io.File
@@ -50,7 +57,6 @@ object Listener:Listener {
     private val banMap = mutableMapOf<Player,Set<UUID>>()
     private val uuidToNameMap = mutableMapOf<UUID,String>()
     private val command = mutableListOf<String>()
-    private val reSpawn = mutableSetOf<Player>()
     fun setCommand(string: String) {
         command.add(string)
         submit(delay = 60*20) { removeCommand(string) }
@@ -325,7 +331,7 @@ object Listener:Listener {
         }
 
         //地狱邀请函和末地邀请函
-        if (e.item == Item.netherItem() || e.item == Item.endItem()){
+        if (e.item?.hasLore("§f右键传送门打开传送菜单") == true){
             e.isCancelled = true
             return
         }
@@ -406,7 +412,8 @@ object Listener:Listener {
     //阻止玩家被实体锁定目标
     fun target(e: EntityTargetLivingEntityEvent) {
         //不是玩家世界就不管
-        if (!e.entity.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
+        if (e.target == null) return
+        if (!e.target!!.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
         //如果目标是玩家且不是成员，则取消事件
         if (e.target is Player) {
             val target = e.target as Player
@@ -502,7 +509,7 @@ object Listener:Listener {
             //判断区块等级
             val dao = getPlayerDaoMap(e.player.name)
             if (dao!!.chunkCount >=9){
-                e.player.sendMessage("§c您成功传送到资源世界,请尽可能活下去")
+                e.player.sendMessage("§a您成功传送到资源世界,请尽可能活下去")
                 return
             }else{
                 e.isCancelled = true
@@ -512,24 +519,35 @@ object Listener:Listener {
         }
         if (e.to.world.name == "world_nether"){
             //消耗邀请函并传送
-            if (Item.deduct(Item.netherItem(),e.player,1)){
+            if (Item.deduct(Item.netherItem(e.player),e.player,1)){
                 e.player.sendMessage("§a你跨世界传送到了§4资源地狱§a,消耗 §4地狱邀请函§a x1")
                 return
             }else{
-                e.player.sendMessage("§c你没有§4地狱邀请函，无法跨世界传送到资源地狱")
-                e.isCancelled = true
-                return
+                //公共邀请函判断
+                if (Item.deduct(Item.netherItem(),e.player,1)){
+                    e.player.sendMessage("§a你跨世界传送到了§4资源地狱§a,消耗 §4地狱邀请函§a x1")
+                    return
+                }else{
+                    e.player.sendMessage("§c你没有§4地狱邀请函，无法跨世界传送到资源地狱")
+                    e.isCancelled = true
+                    return
+                }
             }
         }
         if (e.to.world.name == "world_the_end"){
             //消耗邀请函并传送
-            if (Item.deduct(Item.endItem(),e.player,1)){
+            if (Item.deduct(Item.endItem(e.player),e.player,1)){
                 e.player.sendMessage("§a你跨世界传送到了§5资源末地§a,消耗 §5末地邀请函§a x1")
                 return
             }else{
-                e.player.sendMessage("§c你没有§5末地邀请函，无法跨世界传送到资源末地")
-                e.isCancelled = true
-                return
+                if (Item.deduct(Item.endItem(),e.player,1)){
+                    e.player.sendMessage("§a你跨世界传送到了§5资源末地§a,消耗 §5末地邀请函§a x1")
+                    return
+                }else{
+                    e.player.sendMessage("§c你没有§5末地邀请函，无法跨世界传送到资源末地")
+                    e.isCancelled = true
+                    return
+                }
             }
         }
         //不是玩家世界就不管
@@ -643,31 +661,38 @@ object Listener:Listener {
     /**
      * 玩家死亡重生,在自己家园死就在自己家园生
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     fun death(e:PlayerDeathEvent){
+        val dao = getPlayerDaoMap(e.player.name)
+        val world = Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}")
+        e.player.respawnLocation = Location(world,dao!!.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
+
+        /*
         if (e.player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"){
             reSpawn.add(e.player)
             submit(delay = 20*10) { reSpawn.remove(e.player) }
         }
+
+         */
     }
     /**
      * 玩家重生事件
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     fun reborn(e:PlayerRespawnEvent){
-        if (reSpawn.contains(e.player)){
-            //出生在自己家园
-            val dao = getPlayerDaoMap(e.player.name)!!
-            e.respawnLocation = Location(Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
+        //出生在自己家园
+        val dao = getPlayerDaoMap(e.player.name)!!
+        e.respawnLocation = Location(Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
                 dao.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
-            reSpawn.remove(e.player)
-        }
+
     }
     /**
      *
      */
     @EventHandler
     fun respawn(e:PlayerPostRespawnEvent){
+
+
     }
     /**
      * 玩家离线信息
@@ -676,5 +701,31 @@ object Listener:Listener {
     fun leave(e:PlayerQuitEvent){
         e.quitMessage(null)
     }
-
+    /**
+     * 加载区块的时候添加宝箱物品
+     */
+    @EventHandler
+    fun onChunkLoad(event: ChunkPopulateEvent) {
+        val chunk = event.chunk
+        submit(async = true) {
+            for (x in 0..15) {
+                for (z in 0..15) {
+                    for (y in chunk.world.minHeight until chunk.world.maxHeight) {
+                        val block = chunk.getBlock(x, y, z)
+                        if (block.type == Material.CHEST) {
+                            submit {
+                                val chest = block.state as Chest
+                                if (Random().nextInt(20)>18){
+                                    chest.inventory.addItem(Item.endItem())
+                                }
+                                if (Random().nextInt(20)>18){
+                                    chest.inventory.addItem(Item.netherItem())
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
