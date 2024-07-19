@@ -1,9 +1,6 @@
 package com.dongzh1.chunkworld.database
 
-import com.dongzh1.chunkworld.database.dao.BanshipDao
-import com.dongzh1.chunkworld.database.dao.ChunkDao
-import com.dongzh1.chunkworld.database.dao.PlayerDao
-import com.dongzh1.chunkworld.database.dao.FriendshipDao
+import com.dongzh1.chunkworld.database.dao.*
 import com.j256.ormlite.dao.Dao
 import com.j256.ormlite.stmt.QueryBuilder
 import com.xbaimiao.easylib.database.Ormlite
@@ -14,13 +11,16 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
     private val friendshipDao: Dao<FriendshipDao, Int> = ormlite.createDao(FriendshipDao::class.java)
     private val banshipDao: Dao<BanshipDao, Int> = ormlite.createDao(BanshipDao::class.java)
     private val chunkDao: Dao<ChunkDao, Int> = ormlite.createDao(ChunkDao::class.java)
+    private val netherDao:Dao<NetherDao,Int> = ormlite.createDao(NetherDao::class.java)
+    private val netherChunkDao:Dao<NetherChunkDao,Int> = ormlite.createDao(NetherChunkDao::class.java)
 
     // 根据玩家名字获取玩家信息
     fun playerGet(name: String): PlayerDao? =
         playerDao.queryForEq("name", name).firstOrNull()
     fun playerGet(uuid: UUID): PlayerDao? =
         playerDao.queryForEq("uuid", uuid).firstOrNull()
-
+    fun netherGet(id: Int): NetherDao? =
+        netherDao.queryForId(id)
     // 获取玩家信息，但排除指定玩家列表，根据chunkCount从大到小排序，然后取第n到第m个
     fun playerGet(n: Int, m: Int, exclude: List<Int>): List<PlayerDao> {
         // 构建查询
@@ -57,6 +57,9 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
     // 根据 playerDao 表 id 获取玩家占领的区块
     fun chunkGet(id: Int): List<Pair<Int, Int>> =
         chunkDao.queryForEq("playerID", id).map { it.x to it.z }
+    //根据netherDao表id获取玩家占领的区块
+    fun netherChunkGet(id:Int):List<Pair<Int,Int>> =
+        netherChunkDao.queryForEq("playerID",id).map { it.x to it.z }
 
     // 方法：根据UUID获取玩家ID
     fun getPlayerIdByUuid(uuid: UUID): Int? {

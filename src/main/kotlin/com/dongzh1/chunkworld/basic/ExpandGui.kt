@@ -221,12 +221,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             it.view.setItem(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
                 null,-1))
         }
-        basic.onClick(30) {
-            confirm(chunk1,chunk2,chunk3)
-        }
-        basic.onClick(32) {
-            rebuild()
-        }
+        closeAndConfirm(basic,chunk1,chunk2,chunk3)
         basic.onClose{
             if (!canClose) build(chunk1,chunk2,chunk3,it.view.getItem(11)!!,it.view.getItem(13)!!,it.view.getItem(15)!!)
         }

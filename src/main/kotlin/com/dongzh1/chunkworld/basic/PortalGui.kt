@@ -31,9 +31,24 @@ class PortalGui(private val p: Player) {
             ,-1))
         basic.set(1, buildItem(Material.PINK_BED, builder = {
             name = "§b我的世界"
-            lore.add("§f传送到你的世界的出生点")
+            lore.add("§f传送到你的世界的主世界出生点")
             lore.add("§8你的世界，我的世界，好像不一样")
         }))
+        /*
+        basic.set(2, buildItem(Material.RED_BED, builder = {
+            name = "§b我的地狱"
+            lore.add("§f传送到你的世界的地狱出生点")
+            if (dao!!.chunkCount >= 50){
+                if ()
+                lore.add("§f解锁区块§a${dao.chunkCount}§f/50")
+                lore.add("§f你已符合条件,可以传送到地狱")
+            }else{
+                lore.add("§f解锁区块§c${dao.chunkCount}§f/50")
+                lore.add("§f达到条件后即可解锁你的地狱世界")
+            }
+        }))
+
+         */
         basic.set(2, buildItem(Material.GRASS_BLOCK, builder = {
             name = "§a资源世界"
             lore.add("§f随机传送到资源世界")

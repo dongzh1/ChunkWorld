@@ -6,6 +6,7 @@ import com.dongzh1.chunkworld.basic.Item
 import com.dongzh1.chunkworld.basic.PortalGui
 import com.dongzh1.chunkworld.command.Tp
 import com.dongzh1.chunkworld.database.dao.ChunkDao
+import com.dongzh1.chunkworld.database.dao.NetherDao
 import com.dongzh1.chunkworld.database.dao.PlayerDao
 import com.dongzh1.chunkworld.listener.ChunkTeleportCause
 import com.xbaimiao.easylib.chat.TellrawJson
@@ -52,7 +53,9 @@ import kotlin.math.max
 
 object Listener:Listener {
     private val playerDaoMap = mutableMapOf<String,PlayerDao>()
-    private val chunkMap = mutableMapOf<Player,Set<Pair<Int,Int>>>()
+    private val netherDaoMap = mutableMapOf<String,NetherDao>()
+    private val netherChunkMap = mutableMapOf<UUID,Set<Pair<Int,Int>>>()
+    private val chunkMap = mutableMapOf<UUID,Set<Pair<Int,Int>>>()
     private val trustMap = mutableMapOf<Player,Set<UUID>>()
     private val banMap = mutableMapOf<Player,Set<UUID>>()
     private val uuidToNameMap = mutableMapOf<UUID,String>()
@@ -67,14 +70,20 @@ object Listener:Listener {
     fun getPlayerDaoMap(name:String):PlayerDao? = playerDaoMap[name]
     fun getPlayerDaosMap():List<PlayerDao> = playerDaoMap.values.toList()
     fun getPlayerDaoMap(uuid: UUID):PlayerDao? = playerDaoMap[uuidToNameMap[uuid]]
-    fun setChunkMap(player: Player,chunk:Set<Pair<Int,Int>>) = chunkMap.set(player,chunk)
+    fun setChunkMap(uuid:UUID,chunk:Set<Pair<Int,Int>>) = chunkMap.set(uuid,chunk)
     fun addChunkMap(player: Player,chunk:Pair<Int,Int>) {
-        val list = chunkMap[player]!!.toMutableSet()
+        val list = chunkMap[player.uniqueId]!!.toMutableSet()
         list.add(chunk)
-        chunkMap[player] = list
+        chunkMap[player.uniqueId] = list
     }
-    fun getChunkMap(player: Player):Set<Pair<Int,Int>>? = chunkMap[player]
-    fun getChunkMaps():Map<Player,Set<Pair<Int,Int>>> = chunkMap
+    fun addChunkMap(uuid:UUID,chunk: Pair<Int, Int>){
+        val list = chunkMap[uuid]!!.toMutableSet()
+        list.add(chunk)
+        chunkMap[uuid] = list
+    }
+    fun getChunkMap(player: Player):Set<Pair<Int,Int>>? = chunkMap[player.uniqueId]
+    private fun getChunkMap(uuid: UUID):Set<Pair<Int,Int>>? = chunkMap[uuid]
+    fun getChunkMaps():Map<UUID,Set<Pair<Int,Int>>> = chunkMap
     fun setTrustMap(player: Player,trust:Set<UUID>) = trustMap.set(player,trust)
     fun getTrustMap(player: Player):Set<UUID>? = trustMap[player]
     fun setBanMap(player: Player,ban:Set<UUID>) = banMap.set(player,ban)
@@ -85,7 +94,7 @@ object Listener:Listener {
     private fun removeData(player: Player) {
         playerDaoMap.remove(player.name)
         uuidToNameMap.remove(player.uniqueId)
-        chunkMap.remove(player)
+        chunkMap.remove(player.uniqueId)
         trustMap.remove(player)
         banMap.remove(player)
     }
@@ -196,6 +205,7 @@ object Listener:Listener {
                 error("世界加载失败")
             }else {
                 world.isAutoSave = true
+                world.keepSpawnInMemory = false
                 //现在是异步
                 switchContext(SynchronizationContext.ASYNC)
                 val spawnLocation:Location
@@ -227,7 +237,7 @@ object Listener:Listener {
                     //新建了玩家数据，可以存入内存
                     setPlayerDaoMap(e.player.name,playerDao)
                     setUUIDtoName(e.player.uniqueId,e.player.name)
-                    setChunkMap(e.player, setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z))
+                    setChunkMap(e.player.uniqueId, setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z))
                     setTrustMap(e.player, emptySet())
                     setBanMap(e.player, emptySet())
                     //现在是同步
@@ -253,7 +263,7 @@ object Listener:Listener {
                         }
                         //区块数据存入数据库
                         ChunkWorld.db.chunkCreate(chunkDao)
-                        chunkMap[e.player] = setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z)
+                        chunkMap[e.player.uniqueId] = setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z)
                         //创建第一次的屏障
                         //现在是同步
                         switchContext(SynchronizationContext.SYNC)
@@ -262,7 +272,7 @@ object Listener:Listener {
                             world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,world)
                     }else{
                         //有区块信息，存入内存
-                        setChunkMap(e.player,chunList.toSet())
+                        setChunkMap(e.player.uniqueId,chunList.toSet())
                     }
                     SynchronizationContext.ASYNC
                     setTrustMap(e.player, ChunkWorld.db.getShip(playerDao.id,true).map { it.uuid }.toSet())
@@ -281,6 +291,21 @@ object Listener:Listener {
     @EventHandler
     fun onBlockPlaced(e:BlockPlaceEvent){
         if (e.itemInHand.itemMeta == Item.voidItem().itemMeta){
+            //判断所放位置在不在已拓展的区块内
+            val chunks = getChunkMap(e.player)!!
+            var isIN = false
+            for (c in chunks){
+                val chunk = e.blockPlaced.chunk
+                if ((chunk.x to chunk.z) == c){
+                    isIN = true
+                    break
+                }
+            }
+            if (!isIN){
+                //在外界
+                e.isCancelled = true
+                return
+            }
             //放置下虚空生成器了
             val blockState = e.blockPlaced.state
             val location = e.blockPlaced.location
@@ -347,7 +372,26 @@ object Listener:Listener {
                 //右键放置
                 val block = e.clickedBlock
                 if (block != null){
-                    e.isCancelled = false
+                    if (block.type != Material.BARRIER){
+                        //判断所放位置在不在已拓展的区块内
+                        //todo
+                        val chunks = getChunkMap(e.player)!!
+                        var isIN = false
+                        for (c in chunks){
+                            val chunk = block.chunk
+                            if ((chunk.x to chunk.z) == c){
+                                isIN = true
+                                break
+                            }
+                        }
+                        if (isIN){
+                            //不是屏障
+                            e.isCancelled = false
+                        }
+                    }else{
+                        return
+                    }
+
                 }
             }else{
                 e.player.sendMessage("§c请在潜行状态右键你想改变的区块")
@@ -398,15 +442,37 @@ object Listener:Listener {
             }
             return
         }
+
         if (e.player.isOp) return
         if (e.player.world.name == "world"){
             e.isCancelled = true
             return
         }
-        //这时候如果取消了就直接该返回了
-        if (e.isCancelled) return
         //不是自己的世界或被信任的世界就取消
-        e.isCancelled = !isInTrustedWorld(e.player)
+        if (!isInTrustedWorld(e.player)){
+            e.isCancelled = true
+            return
+        }
+        //世界外面交互
+        val chunk1 = e.clickedBlock?.chunk
+        //玩家必在家园世界，所以看看这个世界的区块来决定能不能放置
+        val ownerUUID = e.player.world.name.split("/").last()
+        val chunks = getChunkMap(UUID.fromString(ownerUUID)!!)!!
+        var isIn = false
+        if (chunk1 != null){
+            for (c in chunks){
+                if ((chunk1.x to chunk1.z) == c){
+                    isIn = true
+                    break
+                }
+            }
+        }
+        if (!isIn){
+            //在边界外
+            e.isCancelled = true
+            return
+        }
+
     }
     @EventHandler
     //阻止玩家被实体锁定目标

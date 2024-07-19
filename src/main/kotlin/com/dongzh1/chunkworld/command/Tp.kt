@@ -98,6 +98,7 @@ object Tp {
                     }
                 }
             }
+            val chunk = ChunkWorld.db.chunkGet(playerDao!!.id)
             //现在应该都是符合访问条件的
             switchContext(SynchronizationContext.SYNC)
             //先获取，如果没有加载就加载
@@ -107,6 +108,7 @@ object Tp {
             if (Listener.getPlayerDaoMap(playerName) == null){
                 Listener.setPlayerDaoMap(playerName,playerDao!!)
                 Listener.setUUIDtoName(playerDao!!.uuid,playerName)
+                Listener.setChunkMap(playerDao!!.uuid,chunk.toSet())
             }
             target = Location(world, playerDao!!.x(), playerDao!!.y(), playerDao!!.z(), playerDao!!.yaw(), playerDao!!.pitch())
         }
