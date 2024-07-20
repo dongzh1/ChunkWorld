@@ -20,7 +20,8 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
         playerDao.queryForEq("name", name).firstOrNull()
     fun playerGet(uuid: UUID): PlayerDao? =
         playerDao.queryForEq("uuid", uuid).firstOrNull()
-
+    //获取最近一个月上线的玩家数据
+    fun
     // 获取玩家信息，但排除指定玩家列表，根据chunkCount从大到小排序，然后取第n到第m个
     fun playerGet(n: Int, m: Int, exclude: List<Int>): List<PlayerDao> {
         // 构建查询
