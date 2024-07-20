@@ -13,36 +13,33 @@ class PlayerDao {
     var id: Int = 0
 
     //玩家UUID
-    @DatabaseField(dataType = DataType.UUID, columnName = "uuid")
+    @DatabaseField(canBeNull = false,dataType = DataType.UUID, columnName = "uuid")
     lateinit var uuid: UUID
 
     //玩家名字
-    @DatabaseField(dataType = DataType.STRING, columnName = "name")
+    @DatabaseField(canBeNull = false,dataType = DataType.STRING, columnName = "name")
     lateinit var name: String
 
     //世界创建时间,yyyy_mm_dd_hh_mm_ss
-    @DatabaseField(dataType = DataType.STRING, columnName = "createTime")
+    @DatabaseField(canBeNull = false,dataType = DataType.STRING, columnName = "createTime")
     lateinit var createTime: String
 
     //玩家上次上线时间
-    @DatabaseField(dataType = DataType.LONG, columnName = "createTime")
+    @DatabaseField(canBeNull = false,dataType = DataType.LONG, columnName = "createTime")
     var lastTime: Long = 0
 
     //世界传送点
-    @DatabaseField(dataType = DataType.STRING, columnName = "teleport")
+    @DatabaseField(canBeNull = false,dataType = DataType.STRING, columnName = "teleport")
     lateinit var teleport: String
     //世界出生点
-    @DatabaseField(dataType = DataType.STRING, columnName = "spawn")
+    @DatabaseField(canBeNull = false,dataType = DataType.STRING, columnName = "spawn")
     lateinit var spawn: String
     //世界出生点
-    @DatabaseField(dataType = DataType.STRING, columnName = "netherSpawn")
+    @DatabaseField(canBeNull = false,dataType = DataType.STRING, columnName = "netherSpawn")
     lateinit var netherSpawn: String
-    //世界出生点
-    @DatabaseField(dataType = DataType.STRING, columnName = "endSpawn")
-    lateinit var endSpawn: String
 
     //世界状态,012分别代表开放,部分开放,关闭
-    @DatabaseField(dataType = DataType.BYTE, columnName = "worldStatus")
+    @DatabaseField(canBeNull = false,dataType = DataType.BYTE, columnName = "worldStatus")
     var worldStatus: Byte = 0
 
 

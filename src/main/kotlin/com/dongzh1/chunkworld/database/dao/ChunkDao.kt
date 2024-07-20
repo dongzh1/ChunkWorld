@@ -11,18 +11,18 @@ class ChunkDao {
     var id: Int = 0
 
     //playerDao表里的玩家对应的id
-    @DatabaseField(dataType = DataType.INTEGER, columnName = "playerID")
+    @DatabaseField(canBeNull = false,dataType = DataType.INTEGER, columnName = "playerID")
     var playerID: Int = 0
 
     //CHUNK的X坐标
-    @DatabaseField(dataType = DataType.INTEGER, columnName = "x")
+    @DatabaseField(canBeNull = false,dataType = DataType.INTEGER, columnName = "x")
     var x: Int = 0
 
     //CHUNK的Z坐标
-    @DatabaseField(dataType = DataType.INTEGER, columnName = "z")
+    @DatabaseField(canBeNull = false,dataType = DataType.INTEGER, columnName = "z")
     var z: Int = 0
-    //0代表主世界，1代表地狱，2代表末地
-    @DatabaseField(dataType = DataType.BYTE, columnName = "worldType")
+    //0代表主世界，1代表地狱
+    @DatabaseField(canBeNull = false,dataType = DataType.BYTE, columnName = "worldType")
     var worldType:Byte = 0
 
 }

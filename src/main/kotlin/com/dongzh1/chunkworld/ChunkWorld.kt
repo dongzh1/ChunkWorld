@@ -85,7 +85,6 @@ class ChunkWorld : EasyPlugin() {
             if (!config.getBoolean("LobbyServer")){
                 //说明不是大厅，要上传tps数据,每分钟都上传
                 submit(delay = 1,period = 20*60) { RedisManager.setIP() }
-
             }
             //注册全局监听
             registerListener(GroupListener)

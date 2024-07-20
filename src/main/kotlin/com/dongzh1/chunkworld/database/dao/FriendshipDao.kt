@@ -11,11 +11,11 @@ class FriendshipDao {
     var id: Int = 0
 
     //playerDao表里的玩家对应的id
-    @DatabaseField(dataType = DataType.INTEGER, columnName = "playerId")
+    @DatabaseField(canBeNull = false,dataType = DataType.INTEGER, columnName = "playerId")
     var playerId: Int = 0
 
     //被信任的玩家的id
-    @DatabaseField(dataType = DataType.INTEGER, columnName = "friendId")
+    @DatabaseField(canBeNull = false,dataType = DataType.INTEGER, columnName = "friendId")
     var friendId: Int = 0
 
 

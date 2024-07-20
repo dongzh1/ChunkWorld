@@ -21,16 +21,15 @@ object RedisData {
             lastTime = stringPlayerDao.split("|,|")[3].toLong()
             spawn =stringPlayerDao.split("|,|")[4]
             netherSpawn = stringPlayerDao.split("|,|")[5]
-            endSpawn = stringPlayerDao.split("|,|")[6]
-            worldStatus = stringPlayerDao.split("|,|")[7].toByte()
-            teleport = stringPlayerDao.split("|,|")[8]
+            worldStatus = stringPlayerDao.split("|,|")[6].toByte()
+            teleport = stringPlayerDao.split("|,|")[7]
         }
     }
     /**
      * 把playerDao存入内存，群组使用
      */
     fun setPlayerDao(dao: PlayerDao){
-        val stringPlayerDao = "${dao.id}|,|${dao.name}|,|${dao.createTime}|,|${dao.lastTime}|,|${dao.spawn}|,|${dao.netherSpawn}|,|${dao.endSpawn}|,|${dao.worldStatus}|,|${dao.teleport}"
+        val stringPlayerDao = "${dao.id}|,|${dao.name}|,|${dao.createTime}|,|${dao.lastTime}|,|${dao.spawn}|,|${dao.netherSpawn}|,|${dao.worldStatus}|,|${dao.teleport}"
         RedisManager.setPlayerDao(dao.uuid.toString(),stringPlayerDao)
     }
     /**
