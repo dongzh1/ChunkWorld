@@ -43,8 +43,8 @@ object GroupCommand {
                         when(envir){
                             Environment.NORMAL -> {
                                 file = File(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/world")
-                                //有poi文件夹说明是加载过的
-                                if (File(file,"poi").exists()) {
+                                //有entities文件夹说明是加载过的
+                                if (File(file,"entities").exists()) {
                                     //说明这个世界已经创建了
                                     sender.sendMessage("§c此玩家主世界已创建,不能重复创建")
                                     return@exec
@@ -52,14 +52,17 @@ object GroupCommand {
                             }
                             Environment.NETHER -> {
                                 file = File(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/nether")
-                                if (File(file,"poi").exists()) {
+                                //地狱世界格式和主世界不一样
+                                if (File(file,"DIM-1/entities").exists()) {
                                     //说明这个世界已经创建了
                                     sender.sendMessage("§c此玩家地狱世界已创建,不能重复创建")
                                     return@exec
                                 }
                             }
                             Environment.THE_END -> {
-                                if (File(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/end/region").exists()) {
+                                file = File(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/end")
+                                //末地世界格式和主世界不一样
+                                if (File(file,"DIM1/entities").exists()) {
                                     //说明这个世界已经创建了
                                     sender.sendMessage("§c此玩家末地世界已创建,不能重复创建")
                                     return@exec
