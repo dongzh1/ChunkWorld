@@ -53,9 +53,32 @@ object RedisManager{
             it.hset("ChunkWorld_Banners",uuidString,banners)
         }
     }
+
+    /**
+     * 将本服的tps上传到redis
+     */
     fun setIP(){
         jedisPool.resource.use {
-            it.hset("ChunkWorld_IP",Bukkit.getIp(),Bukkit.getTPS().first().toString())
+            it.hset("ChunkWorld_IP",Bukkit.getIp()+":${Bukkit.getPort()}",Bukkit.getTPS().first().toString())
+        }
+    }
+
+    /**
+     * 获取tps最高的服务器ip，方便转发过去
+     */
+    fun getHighestTpsIP():String?{
+        jedisPool.resource.use {
+            val ipTPS = it.hgetAll("ChunkWorld_IP")
+            var ip:String? = null
+            var maxTps = 0.0
+            ipTPS.forEach { map ->
+                if (map.value.toDouble() > maxTps){
+                    maxTps = map.value.toDouble()
+                    ip = map.key
+                }
+            }
+            //现在就是最大的
+            return ip
         }
     }
 

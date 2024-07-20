@@ -16,6 +16,7 @@ redis:
 World: "/home"
 Resource: "chunkWorld"
 Location: "world,2.5,64.0,8.0,-90,0"
+LobbyServer: false
 #lore第一行必须有玩家名字才能对应使用
 item:
   material: "STRUCTURE_VOID"

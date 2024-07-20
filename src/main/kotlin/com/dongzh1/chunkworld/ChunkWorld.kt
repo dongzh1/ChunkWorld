@@ -8,6 +8,7 @@ import com.dongzh1.chunkworld.listener.GroupListener
 import com.dongzh1.chunkworld.listener.SingleListener
 import com.dongzh1.chunkworld.redis.RedisConfig
 import com.dongzh1.chunkworld.redis.RedisListener
+import com.dongzh1.chunkworld.redis.RedisManager
 import com.xbaimiao.easylib.EasyPlugin
 import com.xbaimiao.easylib.command.registerCommand
 import com.xbaimiao.easylib.task.EasyLibTask
@@ -80,6 +81,11 @@ class ChunkWorld : EasyPlugin() {
                 jedisPool.resource.use { jedis ->
                     jedis.subscribe(redisListener, channel)
                 }
+            }
+            if (!config.getBoolean("LobbyServer")){
+                //说明不是大厅，要上传tps数据,每分钟都上传
+                submit(delay = 1,period = 20*60) { RedisManager.setIP() }
+
             }
             //注册全局监听
             registerListener(GroupListener)
