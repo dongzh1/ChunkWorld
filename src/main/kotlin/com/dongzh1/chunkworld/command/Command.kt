@@ -11,6 +11,7 @@ import com.xbaimiao.easylib.command.command
 import com.xbaimiao.easylib.util.*
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.World
 import org.bukkit.WorldCreator
 import org.bukkit.block.Container
 import org.bukkit.command.CommandSender
@@ -289,7 +290,11 @@ object Command {
         permission = "chunkworld.admin"
         players {
             exec {
-
+                val player = valueOf(it)
+                val wc = WorldCreator("xxx_nether")
+                wc.environment(World.Environment.NETHER)
+                val w =Bukkit.createWorld(wc)
+                player!!.teleportAsync(w!!.spawnLocation)
             }
         }
     }
