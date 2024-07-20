@@ -1,27 +1,19 @@
 package com.dongzh1.chunkworld.basic
 
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.Listener
-import com.dongzh1.chunkworld.Listener.getPlayerDaoMap
+import com.dongzh1.chunkworld.listener.SingleListener
 import com.dongzh1.chunkworld.command.Tp
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.*
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.title.Title
-import net.kyori.adventure.title.Title.Times
 import org.bukkit.Bukkit
-import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
-import java.time.Duration
-import kotlin.math.abs
-import kotlin.math.max
 
 class PortalGui(private val p: Player) {
     fun build() {
-        val dao = Listener.getPlayerDaoMap(p.name)
+        val dao = SingleListener.getPlayerDaoMap(p.name)
         val basic = PaperBasic(p, Component.text("世界传送"))
         //设置菜单大小为行
         basic.rows(1)

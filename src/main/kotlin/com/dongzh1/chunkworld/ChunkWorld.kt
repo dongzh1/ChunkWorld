@@ -1,26 +1,22 @@
 package com.dongzh1.chunkworld
 
-import com.cryptomorin.xseries.XMaterial
-import com.dongzh1.chunkworld.command.Command
+import com.dongzh1.chunkworld.command.SingleCommand
 import com.dongzh1.chunkworld.database.AbstractDatabaseApi
 import com.dongzh1.chunkworld.database.MysqlDatabaseApi
 import com.dongzh1.chunkworld.database.SQLiteDatabaseApi
-import com.fastasyncworldedit.core.Fawe
-import com.google.common.io.ByteStreams
+import com.dongzh1.chunkworld.listener.GroupListener
+import com.dongzh1.chunkworld.listener.SingleListener
+import com.dongzh1.chunkworld.redis.RedisConfig
+import com.dongzh1.chunkworld.redis.RedisListener
 import com.xbaimiao.easylib.EasyPlugin
 import com.xbaimiao.easylib.command.registerCommand
-import com.xbaimiao.easylib.database.MysqlHikariDatabase
-import com.xbaimiao.easylib.database.Ormlite
-import com.xbaimiao.easylib.util.ShortUUID
+import com.xbaimiao.easylib.task.EasyLibTask
 import com.xbaimiao.easylib.util.plugin
 import com.xbaimiao.easylib.util.registerListener
 import com.xbaimiao.easylib.util.submit
 import net.kyori.adventure.text.Component
 import org.bukkit.*
-import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.meta.ItemMeta
-import org.bukkit.plugin.messaging.PluginMessageListener
+import redis.clients.jedis.JedisPool
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -33,7 +29,11 @@ class ChunkWorld : EasyPlugin() {
     companion object {
         val inst get() = plugin as ChunkWorld
         lateinit var db : AbstractDatabaseApi
+        lateinit var jedisPool: JedisPool
+        lateinit var subscribeTask: EasyLibTask
+        const val channel = "ChunkWorld"
     }
+    private var redisListener: RedisListener? = null
 
     override fun onLoad() {
         super.onLoad()
@@ -63,17 +63,38 @@ class ChunkWorld : EasyPlugin() {
         //释放世界文件
         loadResource()
         //赋值数据库
-        db = if (config.getBoolean("Mysql.Enable")) {
-            MysqlDatabaseApi()
+        if (config.getBoolean("Mysql.Enable")) {
+            //使用mysql的同时redis也要启用
+            db = MysqlDatabaseApi()
+            Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f启用群组模式，链接mysql成功")
+            val redisConfig = RedisConfig(config)
+            Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f启用群组模式，尝试链接redis库")
+            Bukkit.getConsoleSender().sendMessage("RedisInfo: " + redisConfig.host + ":" + redisConfig.port)
+            jedisPool = if (redisConfig.password != null) {
+                JedisPool(redisConfig, redisConfig.host, redisConfig.port, 1000, redisConfig.password)
+            } else {
+                JedisPool(redisConfig, redisConfig.host, redisConfig.port)
+            }
+            redisListener = RedisListener()
+            subscribeTask = submit(async = true) {
+                jedisPool.resource.use { jedis ->
+                    jedis.subscribe(redisListener, channel)
+                }
+            }
+            //注册全局监听
+            registerListener(GroupListener)
+            //注册指令
+            registerCommand(GroupListener)
         } else {
-            SQLiteDatabaseApi()
+            db = SQLiteDatabaseApi()
+            Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f启用单端模式，链接sqldb成功")
+            //注册全局监听
+            registerListener(SingleListener)
+            //注册指令
+            registerCommand(SingleCommand)
         }
-        //注册指令
-        registerCommand(Command)
-        //注册监听
-        registerListener(Listener)
-        Command.invite.register()
-        Command.wban.register()
+        SingleCommand.invite.register()
+        SingleCommand.wban.register()
         //加载资源世界，用于获取区块和探索
         loadWorlds(config.getString("Resource")?:"chunkworld")
         //每晚3点关服

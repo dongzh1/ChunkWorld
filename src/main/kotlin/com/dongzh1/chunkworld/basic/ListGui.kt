@@ -1,7 +1,7 @@
 package com.dongzh1.chunkworld.basic
 
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.Listener
+import com.dongzh1.chunkworld.listener.SingleListener
 import com.dongzh1.chunkworld.database.dao.PlayerDao
 import com.xbaimiao.easylib.ui.PaperBasic
 import net.kyori.adventure.text.Component
@@ -71,10 +71,10 @@ class ListGui(private val p: Player, private val page:Int,private val isTrusted:
      */
     private fun getPlayerData(size:Int): List<PlayerDao> {
         //在线玩家列表,按照占领区块数量排序
-        val onlinePlayers = Listener.getPlayerDaosMap().sortedByDescending { it.chunkCount }
+        val onlinePlayers = SingleListener.getPlayerDaosMap().sortedByDescending { it.chunkCount }
         if (isTrusted){
             //被信任的玩家
-            val list = Listener.getTrustMap(p)?.toList()
+            val list = SingleListener.getTrustMap(p)?.toList()
             return ChunkWorld.db.playerGet(list?: emptyList())
         }else{
             // 获取所有玩家，优先显示在线玩家

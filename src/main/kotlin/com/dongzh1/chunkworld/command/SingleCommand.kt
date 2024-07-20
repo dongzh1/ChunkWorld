@@ -1,7 +1,7 @@
 package com.dongzh1.chunkworld.command
 
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.Listener
+import com.dongzh1.chunkworld.listener.SingleListener
 import com.dongzh1.chunkworld.WorldEdit
 import com.dongzh1.chunkworld.basic.Item
 import com.dongzh1.chunkworld.basic.ListGui
@@ -11,6 +11,7 @@ import com.xbaimiao.easylib.command.command
 import com.xbaimiao.easylib.util.*
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.World.Environment
 import org.bukkit.WorldCreator
 import org.bukkit.block.Container
 import org.bukkit.command.CommandSender
@@ -18,7 +19,7 @@ import org.bukkit.entity.Player
 import kotlin.math.abs
 
 @ECommandHeader(command = "chunkworld")
-object Command {
+object SingleCommand {
     private val reply = ArgNode(("Mode"),
         exec = {
             listOf("invite", "unban")
@@ -26,6 +27,12 @@ object Command {
             it
         }
     )
+    private val environment = ArgNode(("environment"),
+        exec = {
+            listOf("NORMAL","NETHER","THE_END")
+        }, parse = {
+            Environment.valueOf(it)
+        })
     private val yaw = ArgNode(("yaw"),
         exec = {
             listOf("0","45","90")
@@ -54,15 +61,15 @@ object Command {
                     return@exec
                 }
                 //是否已信任
-                if (Listener.isBeTrust(sender,player.uniqueId)){
+                if (SingleListener.isBeTrust(sender,player.uniqueId)){
                     sender.sendMessage("§c你已和 ${player.name} 世界共享")
                     return@exec
                 }
-                if (Listener.getTrustMap(sender)!!.size >= 8){
+                if (SingleListener.getTrustMap(sender)!!.size >= 8){
                     sender.sendMessage("§c最多只能和8个世界共享")
                     return@exec
                 }
-                if (Listener.getTrustMap(player)!!.size >= 8){
+                if (SingleListener.getTrustMap(player)!!.size >= 8){
                     sender.sendMessage("§c ${player.name} 已经没有更多共享位置了")
                     return@exec
                 }
@@ -76,7 +83,7 @@ object Command {
                     .append("§c拒绝").hoverText("点击拒绝这个邀请").runCommand("/chunkworld deny invite ${sender.name}")
                     .sendTo(player)
                 //把邀请信息存入内存,只有一分钟
-                Listener.setCommand("${sender.name} invite ${player.name}")
+                SingleListener.setCommand("${sender.name} invite ${player.name}")
             }
         }
     }
@@ -94,7 +101,7 @@ object Command {
                     return@exec
                 }
                 //查看是否已拉黑
-                val banMap1 = Listener.getBanMap(sender)!!.toMutableSet()
+                val banMap1 = SingleListener.getBanMap(sender)!!.toMutableSet()
                 if (banMap1.contains(player.uniqueId)){
                     sender.sendMessage("§c你已经把 ${player.name} 拉黑了")
                     return@exec
@@ -121,13 +128,13 @@ object Command {
                     .append("          ")
                     .append("§c不用").hoverText("不用可以不点击")
                     .sendTo(player)
-                val banMap2 = Listener.getBanMap(player)!!.toMutableSet()
+                val banMap2 = SingleListener.getBanMap(player)!!.toMutableSet()
                 banMap1.add(player.uniqueId)
                 banMap2.add(sender.uniqueId)
-                Listener.setBanMap(sender,banMap1)
-                Listener.setBanMap(player,banMap2)
-                val senderId = Listener.getPlayerDaoMap(sender.uniqueId)!!.id
-                val playerId = Listener.getPlayerDaoMap(player.uniqueId)!!.id
+                SingleListener.setBanMap(sender,banMap1)
+                SingleListener.setBanMap(player,banMap2)
+                val senderId = SingleListener.getPlayerDaoMap(sender.uniqueId)!!.id
+                val playerId = SingleListener.getPlayerDaoMap(player.uniqueId)!!.id
                 //数据库中记录拉黑关系
                 submit(async = true) {
                     ChunkWorld.db.addShip(senderId,playerId,false)
@@ -152,22 +159,22 @@ object Command {
                     }
                     when(valueOf(it)){
                         "invite" -> {
-                            if (Listener.hasCommand("$name invite ${sender.name}")){
-                                if (Listener.getTrustMap(sender)!!.size >= 8){
+                            if (SingleListener.hasCommand("$name invite ${sender.name}")){
+                                if (SingleListener.getTrustMap(sender)!!.size >= 8){
                                     sender.sendMessage("§c最多只能和8个世界共享")
-                                    Listener.removeCommand("$name invite ${sender.name}")
+                                    SingleListener.removeCommand("$name invite ${sender.name}")
                                     return@exec
                                 }
-                                val trustMap1 = Listener.getTrustMap(sender)!!.toMutableSet()
-                                val trustMap2 = Listener.getTrustMap(player)!!.toMutableSet()
+                                val trustMap1 = SingleListener.getTrustMap(sender)!!.toMutableSet()
+                                val trustMap2 = SingleListener.getTrustMap(player)!!.toMutableSet()
                                 trustMap1.add(player.uniqueId)
                                 trustMap2.add(sender.uniqueId)
-                                Listener.setTrustMap(sender,trustMap1)
-                                Listener.setTrustMap(player,trustMap2)
-                                val senderId = Listener.getPlayerDaoMap(sender.uniqueId)!!.id
-                                val playerId = Listener.getPlayerDaoMap(player.uniqueId)!!.id
+                                SingleListener.setTrustMap(sender,trustMap1)
+                                SingleListener.setTrustMap(player,trustMap2)
+                                val senderId = SingleListener.getPlayerDaoMap(sender.uniqueId)!!.id
+                                val playerId = SingleListener.getPlayerDaoMap(player.uniqueId)!!.id
                                 submit(async = true) { ChunkWorld.db.addShip(senderId,playerId,true) }
-                                Listener.removeCommand("$name invite ${sender.name}")
+                                SingleListener.removeCommand("$name invite ${sender.name}")
                                 //共享之后，如果就在别人世界，要可以挖掘那些
                                 sender.sendMessage("§a现在你和 ${player.name} 已共享世界")
                                 sender.sendMessage("§a重新传送至 ${player.name} 的世界开始共建")
@@ -176,17 +183,17 @@ object Command {
                             }else sender.sendMessage("§c此邀请已过期或不存在")
                         }
                         "unban" -> {
-                            if (Listener.hasCommand("$name unban ${sender.name}")){
-                                val banMap1 = Listener.getBanMap(sender)!!.toMutableSet()
-                                val banMap2 = Listener.getBanMap(player)!!.toMutableSet()
+                            if (SingleListener.hasCommand("$name unban ${sender.name}")){
+                                val banMap1 = SingleListener.getBanMap(sender)!!.toMutableSet()
+                                val banMap2 = SingleListener.getBanMap(player)!!.toMutableSet()
                                 banMap1.remove(player.uniqueId)
                                 banMap2.remove(sender.uniqueId)
-                                Listener.setBanMap(sender,banMap1)
-                                Listener.setBanMap(player,banMap2)
-                                val senderId = Listener.getPlayerDaoMap(sender.uniqueId)!!.id
-                                val playerId = Listener.getPlayerDaoMap(player.uniqueId)!!.id
+                                SingleListener.setBanMap(sender,banMap1)
+                                SingleListener.setBanMap(player,banMap2)
+                                val senderId = SingleListener.getPlayerDaoMap(sender.uniqueId)!!.id
+                                val playerId = SingleListener.getPlayerDaoMap(player.uniqueId)!!.id
                                 submit(async = true) { ChunkWorld.db.removeShip(senderId,playerId,false) }
-                                Listener.removeCommand("$name unban ${sender.name}")
+                                SingleListener.removeCommand("$name unban ${sender.name}")
                                 sender.sendMessage("§a现在你和 ${player.name} 已不再相互拉黑")
                                 player.sendMessage("§a${sender.name} 已同意和你解除相互拉黑关系")
                             }else sender.sendMessage("§c此申请已过期或不存在")
@@ -210,15 +217,15 @@ object Command {
                     val player = Bukkit.getPlayerExact(name)
                     when(valueOf(it)){
                         "invite" -> {
-                            if (Listener.hasCommand("$name invite ${sender.name}")){
-                                Listener.removeCommand("$name invite ${sender.name}")
+                            if (SingleListener.hasCommand("$name invite ${sender.name}")){
+                                SingleListener.removeCommand("$name invite ${sender.name}")
                                 sender.sendMessage("§a已拒绝 $name 的共享世界请求")
                                 player?.sendMessage("§c${sender.name} 已拒绝你的共享世界请求")
                             }else sender.sendMessage("§c此邀请已过期或不存在")
                         }
                         "unban" -> {
-                            if (Listener.hasCommand("$name unban ${sender.name}")){
-                                Listener.removeCommand("$name unban ${sender.name}")
+                            if (SingleListener.hasCommand("$name unban ${sender.name}")){
+                                SingleListener.removeCommand("$name unban ${sender.name}")
                                 sender.sendMessage("§a已拒绝 $name 的解除相互拉黑请求")
                                 player?.sendMessage("§c${sender.name} 已拒绝和你解除相互拉黑关系")
                             }else sender.sendMessage("§c此申请已过期或不存在")
@@ -262,7 +269,7 @@ object Command {
                     sender.sendMessage("§c${player.name} 不在你的世界")
                     return@exec
                 }
-                val dao = Listener.getPlayerDaoMap(player.name)
+                val dao = SingleListener.getPlayerDaoMap(player.name)
                 val location = Location(Bukkit.getWorld("${ChunkWorld.inst.config.getString("World")!!}/${dao!!.uuid}"),dao.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
                 player.teleportAsync(location)
             }
@@ -475,4 +482,5 @@ object Command {
             }
         }
     }
+
 }

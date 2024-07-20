@@ -1,9 +1,9 @@
 package com.dongzh1.chunkworld.command
 
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.Listener
-import com.dongzh1.chunkworld.Listener.isBeBan
-import com.dongzh1.chunkworld.Listener.isBeTrust
+import com.dongzh1.chunkworld.listener.SingleListener
+import com.dongzh1.chunkworld.listener.SingleListener.isBeBan
+import com.dongzh1.chunkworld.listener.SingleListener.isBeTrust
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.submit
@@ -12,9 +12,7 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.WorldCreator
-import org.bukkit.block.data.BlockData
 import org.bukkit.entity.Player
-import java.util.UUID
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -45,7 +43,7 @@ object Tp {
         }
         //如果是回自己世界
         if (player.name == playerName){
-            val playerDao = Listener.getPlayerDaoMap(playerName)!!
+            val playerDao = SingleListener.getPlayerDaoMap(playerName)!!
             //获取世界
             var world = Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${playerDao.uuid}")
             if (world == null) {
@@ -56,7 +54,7 @@ object Tp {
             return
         }
         //从内存获取这个玩家的数据
-        var playerDao = Listener.getPlayerDaoMap(playerName)
+        var playerDao = SingleListener.getPlayerDaoMap(playerName)
         //不在线或不存在的玩家，从数据库调取看看
         launchCoroutine(SynchronizationContext.ASYNC){
             //说明不是在线玩家，从数据库调取
@@ -104,9 +102,9 @@ object Tp {
             val world = Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${playerDao!!.uuid}")?:
                 Bukkit.createWorld(WorldCreator(ChunkWorld.inst.config.getString("World")!!+"/${playerDao!!.uuid}"))
             //世界已经加载了，如果内存中没有这个世界的信息就加入一下
-            if (Listener.getPlayerDaoMap(playerName) == null){
-                Listener.setPlayerDaoMap(playerName,playerDao!!)
-                Listener.setUUIDtoName(playerDao!!.uuid,playerName)
+            if (SingleListener.getPlayerDaoMap(playerName) == null){
+                SingleListener.setPlayerDaoMap(playerName,playerDao!!)
+                SingleListener.setUUIDtoName(playerDao!!.uuid,playerName)
             }
             target = Location(world, playerDao!!.x(), playerDao!!.y(), playerDao!!.z(), playerDao!!.yaw(), playerDao!!.pitch())
         }

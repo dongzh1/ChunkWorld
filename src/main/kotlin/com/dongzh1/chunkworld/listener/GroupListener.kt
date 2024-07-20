@@ -1,27 +1,21 @@
-package com.dongzh1.chunkworld
+package com.dongzh1.chunkworld.listener
 
 import com.destroystokyo.paper.event.player.PlayerPostRespawnEvent
+import com.dongzh1.chunkworld.ChunkWorld
+import com.dongzh1.chunkworld.WorldEdit
 import com.dongzh1.chunkworld.basic.ConfirmExpandGui
 import com.dongzh1.chunkworld.basic.Item
 import com.dongzh1.chunkworld.basic.PortalGui
-import com.dongzh1.chunkworld.command.Tp
 import com.dongzh1.chunkworld.database.dao.ChunkDao
 import com.dongzh1.chunkworld.database.dao.PlayerDao
-import com.dongzh1.chunkworld.listener.ChunkTeleportCause
-import com.xbaimiao.easylib.chat.TellrawJson
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
-import com.xbaimiao.easylib.util.buildItem
 import com.xbaimiao.easylib.util.hasLore
 import com.xbaimiao.easylib.util.submit
 import io.papermc.paper.event.player.AsyncChatEvent
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.TextComponent
-import net.kyori.adventure.text.event.ClickEvent
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
-import net.kyori.adventure.title.TitlePart
 import org.bukkit.*
 import org.bukkit.block.Chest
 import org.bukkit.entity.Player
@@ -31,78 +25,26 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockFromToEvent
 import org.bukkit.event.block.BlockPlaceEvent
-import org.bukkit.event.block.FluidLevelChangeEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.bukkit.event.entity.EntityTargetEvent
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.player.*
 import org.bukkit.event.vehicle.VehicleDamageEvent
-import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.event.world.ChunkPopulateEvent
 import org.bukkit.persistence.PersistentDataType
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import java.io.File
 import java.time.Duration
-import java.util.Random
-import java.util.UUID
-import kotlin.math.abs
-import kotlin.math.max
+import java.util.*
 
-object Listener:Listener {
-    private val playerDaoMap = mutableMapOf<String,PlayerDao>()
-    private val chunkMap = mutableMapOf<Player,Set<Pair<Int,Int>>>()
-    private val trustMap = mutableMapOf<Player,Set<UUID>>()
-    private val banMap = mutableMapOf<Player,Set<UUID>>()
-    private val uuidToNameMap = mutableMapOf<UUID,String>()
-    private val command = mutableListOf<String>()
-    fun setCommand(string: String) {
-        command.add(string)
-        submit(delay = 60*20) { removeCommand(string) }
-    }
-    fun removeCommand(string: String) = command.remove(string)
-    fun hasCommand(string: String):Boolean = command.contains(string)
-    fun setPlayerDaoMap(name:String, playerDao: PlayerDao) = playerDaoMap.set(name,playerDao)
-    fun getPlayerDaoMap(name:String):PlayerDao? = playerDaoMap[name]
-    fun getPlayerDaosMap():List<PlayerDao> = playerDaoMap.values.toList()
-    fun getPlayerDaoMap(uuid: UUID):PlayerDao? = playerDaoMap[uuidToNameMap[uuid]]
-    fun setChunkMap(player: Player,chunk:Set<Pair<Int,Int>>) = chunkMap.set(player,chunk)
-    fun addChunkMap(player: Player,chunk:Pair<Int,Int>) {
-        val list = chunkMap[player]!!.toMutableSet()
-        list.add(chunk)
-        chunkMap[player] = list
-    }
-    fun getChunkMap(player: Player):Set<Pair<Int,Int>>? = chunkMap[player]
-    fun getChunkMaps():Map<Player,Set<Pair<Int,Int>>> = chunkMap
-    fun setTrustMap(player: Player,trust:Set<UUID>) = trustMap.set(player,trust)
-    fun getTrustMap(player: Player):Set<UUID>? = trustMap[player]
-    fun setBanMap(player: Player,ban:Set<UUID>) = banMap.set(player,ban)
-    fun getBanMap(player: Player):Set<UUID>? = banMap[player]
-    fun setUUIDtoName(uuid: UUID,name: String) = uuidToNameMap.set(uuid,name)
-    fun getUUIDtoName(uuid: UUID) = uuidToNameMap[uuid]
-    //删除所有的关于这个玩家存在内存的信息
-    private fun removeData(player: Player) {
-        playerDaoMap.remove(player.name)
-        uuidToNameMap.remove(player.uniqueId)
-        chunkMap.remove(player)
-        trustMap.remove(player)
-        banMap.remove(player)
-    }
-    //仅删除playerDao和uuidToName
-    fun removePlayerData(uuid: UUID) {
-        val name = uuidToNameMap[uuid]
-        if (name != null) {
-            playerDaoMap.remove(name)
-            uuidToNameMap.remove(uuid)
-        }
-    }
+object GroupListener: Listener {
     //获取这个玩家是否被世界主人信任
-    private fun isBeTrust(player: Player,world:World):Boolean {
+    private fun isBeTrust(player: Player, world: World):Boolean {
         val uuid = UUID.fromString(world.name.split("/").last())
         return getTrustMap(player)!!.contains(uuid)
     }
-    fun isBeTrust(player: Player,uuid: UUID):Boolean {
+    fun isBeTrust(player: Player, uuid: UUID):Boolean {
         return getTrustMap(player)!!.contains(uuid)
     }
     //这个玩家是否在被信任的世界，包括自己的世界
@@ -114,24 +56,24 @@ object Listener:Listener {
         return false
     }
     //获取这个玩家是否被世界主人拉黑
-    private fun isBeBan(player: Player,world:World):Boolean {
+    private fun isBeBan(player: Player, world: World):Boolean {
         val uuid = UUID.fromString(world.name.split("/").last())
         return getBanMap(player)!!.contains(uuid)
     }
-    fun isBeBan(player: Player,uuid: UUID):Boolean {
+    fun isBeBan(player: Player, uuid: UUID):Boolean {
         return getBanMap(player)!!.contains(uuid)
     }
 
 
     @EventHandler
-    fun onLogin(e:PlayerLoginEvent) {
+    fun onLogin(e: PlayerLoginEvent) {
     }
     @EventHandler
-    fun onSpawn(e:PlayerSpawnLocationEvent){
+    fun onSpawn(e: PlayerSpawnLocationEvent){
 
     }
     @EventHandler
-    fun waterFlow(e:BlockFromToEvent){
+    fun waterFlow(e: BlockFromToEvent){
         val world = e.block.world
         if (e.block.type == Material.WATER ||
             e.block.type == Material.LAVA ||
@@ -139,7 +81,9 @@ object Listener:Listener {
             e.block.type == Material.LAVA_CAULDRON) {
             //先看世界有没有存这个key，没有说明没有添加规则，可以流动
             if (world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_fluid")!!)){
-                if (world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_fluid")!!,PersistentDataType.BOOLEAN) == true){
+                if (world.persistentDataContainer.get(
+                        NamespacedKey.fromString("chunkworld_fluid")!!,
+                        PersistentDataType.BOOLEAN) == true){
                     //有标记，且可以流动
                     return
                 }else {
@@ -153,12 +97,14 @@ object Listener:Listener {
         }
     }
     @EventHandler
-    fun onJoin(e:PlayerJoinEvent){
+    fun onJoin(e: PlayerJoinEvent){
 
         //给玩家致盲效果
         e.player.addPotionEffect(org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS,20*60,3))
         //提示title
-        e.player.showTitle(Title.title(Component.text("§a欢迎回家"), Component.text("§f正在将您传送至家园..."),
+        e.player.showTitle(
+            Title.title(
+                Component.text("§a欢迎回家"), Component.text("§f正在将您传送至家园..."),
             Times.times(Duration.ofSeconds(1), Duration.ofMinutes(1), Duration.ofSeconds(1))))
         //开启协程，会在异步和同步之间来回使用,现在是异步
         launchCoroutine(SynchronizationContext.ASYNC) {
@@ -198,7 +144,7 @@ object Listener:Listener {
                 world.isAutoSave = true
                 //现在是异步
                 switchContext(SynchronizationContext.ASYNC)
-                val spawnLocation:Location
+                val spawnLocation: Location
                 //第一次加载世界完毕，建立玩家信息
                 if (playerDao == null) {
                     playerDao = PlayerDao().apply {
@@ -234,8 +180,9 @@ object Listener:Listener {
                     switchContext(SynchronizationContext.SYNC)
                     //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
                     WorldEdit.setBarrier(
-                        setOf( world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
-                        world.spawnLocation.chunk.x to world.spawnLocation.chunk.z ,world)
+                        setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
+                        world.spawnLocation.chunk.x to world.spawnLocation.chunk.z, world
+                    )
                     //存储世界
                     world.save()
                 } else {
@@ -259,7 +206,8 @@ object Listener:Listener {
                         switchContext(SynchronizationContext.SYNC)
                         WorldEdit.setBarrier(
                             setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
-                            world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,world)
+                            world.spawnLocation.chunk.x to world.spawnLocation.chunk.z, world
+                        )
                     }else{
                         //有区块信息，存入内存
                         setChunkMap(e.player,chunList.toSet())
@@ -279,7 +227,7 @@ object Listener:Listener {
         }
     }
     @EventHandler
-    fun onBlockPlaced(e:BlockPlaceEvent){
+    fun onBlockPlaced(e: BlockPlaceEvent){
         if (e.itemInHand.itemMeta == Item.voidItem().itemMeta){
             //放置下虚空生成器了
             val blockState = e.blockPlaced.state
@@ -289,24 +237,33 @@ object Listener:Listener {
                 //道具被毁
                 if (location.block.state != blockState){
                     cancel()
-                    e.player.showTitle(Title.title(Component.text("§d生成器破坏"),
+                    e.player.showTitle(
+                        Title.title(
+                            Component.text("§d生成器破坏"),
                         Component.text("§a虚空化改造已停止"),
-                        Times.times(Duration.ofSeconds(1),
+                        Times.times(
+                            Duration.ofSeconds(1),
                             Duration.ofSeconds(2),
                             Duration.ofSeconds(1))))
                     return@submit
                 }
                 if(n < 10){
-                    e.player.showTitle(Title.title(Component.text("§4\uD83D\uDCA5§c虚空吞噬一切§4\uD83D\uDCA5"),
+                    e.player.showTitle(
+                        Title.title(
+                            Component.text("§4\uD83D\uDCA5§c虚空吞噬一切§4\uD83D\uDCA5"),
                         Component.text("§a ${10-n} 秒后缔造虚空,若想取消请用锄头§4破坏§a生成器!"),
-                        Times.times(Duration.ofSeconds(1),
+                        Times.times(
+                            Duration.ofSeconds(1),
                             Duration.ofSeconds(2),
                             Duration.ofSeconds(1))))
                 }
                 if (n == 10){
-                    e.player.showTitle(Title.title(Component.text("§c结束了"),
+                    e.player.showTitle(
+                        Title.title(
+                            Component.text("§c结束了"),
                         Component.text("§a虚空已吞噬区块"),
-                        Times.times(Duration.ofSeconds(1),
+                        Times.times(
+                            Duration.ofSeconds(1),
                             Duration.ofSeconds(2),
                             Duration.ofSeconds(1))))
                     WorldEdit.setVoid(e.blockPlaced.chunk)
@@ -321,7 +278,7 @@ object Listener:Listener {
 
     }
     @EventHandler
-    fun onInteract(e:PlayerInteractEvent){
+    fun onInteract(e: PlayerInteractEvent){
 
         //传送门
         if (e.action == Action.RIGHT_CLICK_BLOCK && (e.clickedBlock?.type == Material.NETHER_PORTAL || e.clickedBlock?.type == Material.END_PORTAL ) ){
@@ -461,7 +418,7 @@ object Listener:Listener {
     }
     @EventHandler
     //不和悬挂实体交互
-    fun hangEntity(e:HangingBreakByEntityEvent){
+    fun hangEntity(e: HangingBreakByEntityEvent){
         if (e.remover is Player) {
             val player = e.remover as Player
             if (player.isOp) return
@@ -589,8 +546,8 @@ object Listener:Listener {
         }
     }
     /**
-    * 玩家切换世界的时候注意游戏模式
-    */
+     * 玩家切换世界的时候注意游戏模式
+     */
     @EventHandler
     fun worldChange(e: PlayerChangedWorldEvent){
         //world世界和家园世界为冒险模式，主人和信任者除外
@@ -598,9 +555,12 @@ object Listener:Listener {
         //玩家去主城，就改为冒险模式
         if (player.world.name == "world"){
             player.gameMode = GameMode.ADVENTURE
-            player.showTitle(Title.title(Component.text("§b神奇小黑屋"),
+            player.showTitle(
+                Title.title(
+                    Component.text("§b神奇小黑屋"),
                 Component.text("§f不会建筑的dong默默路过"),
-                Times.times(Duration.ofSeconds(1),
+                Times.times(
+                    Duration.ofSeconds(1),
                     Duration.ofSeconds(2),
                     Duration.ofSeconds(1))))
             return
@@ -623,16 +583,18 @@ object Listener:Listener {
      * 监听聊天，主要用于指令回应
      */
     @EventHandler
-    fun chat(e:AsyncChatEvent){
+    fun chat(e: AsyncChatEvent){
 
     }
     /**
      * 家园穿过地狱门
      */
     @EventHandler
-    fun portal(e:PlayerPortalEvent){
+    fun portal(e: PlayerPortalEvent){
         e.isCancelled = true
-        e.player.showTitle(Title.title(Component.text("§d跨界传送"), Component.text("§f请退出传送门范围,并§8[§b右键§8]§f传送门选择目标"),
+        e.player.showTitle(
+            Title.title(
+                Component.text("§d跨界传送"), Component.text("§f请退出传送门范围,并§8[§b右键§8]§f传送门选择目标"),
             Times.times(Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(1))))
         /*
         if (e.player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)){
@@ -662,7 +624,7 @@ object Listener:Listener {
      * 玩家死亡重生,在自己家园死就在自己家园生
      */
     @EventHandler(priority = EventPriority.HIGHEST)
-    fun death(e:PlayerDeathEvent){
+    fun death(e: PlayerDeathEvent){
         val dao = getPlayerDaoMap(e.player.name)
         val world = Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}")
         e.player.respawnLocation = Location(world,dao!!.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
@@ -679,18 +641,19 @@ object Listener:Listener {
      * 玩家重生事件
      */
     @EventHandler(priority = EventPriority.HIGHEST)
-    fun reborn(e:PlayerRespawnEvent){
+    fun reborn(e: PlayerRespawnEvent){
         //出生在自己家园
         val dao = getPlayerDaoMap(e.player.name)!!
-        e.respawnLocation = Location(Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
-                dao.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
+        e.respawnLocation = Location(
+            Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
+            dao.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
 
     }
     /**
      *
      */
     @EventHandler
-    fun respawn(e:PlayerPostRespawnEvent){
+    fun respawn(e: PlayerPostRespawnEvent){
 
 
     }
@@ -698,7 +661,7 @@ object Listener:Listener {
      * 玩家离线信息
      */
     @EventHandler
-    fun leave(e:PlayerQuitEvent){
+    fun leave(e: PlayerQuitEvent){
         e.quitMessage(null)
     }
     /**

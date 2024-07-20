@@ -1,7 +1,7 @@
 package com.dongzh1.chunkworld.basic
 
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.Listener
+import com.dongzh1.chunkworld.listener.SingleListener
 import com.dongzh1.chunkworld.WorldEdit
 import com.dongzh1.chunkworld.basic.Biome.chinese
 import com.dongzh1.chunkworld.database.dao.ChunkDao
@@ -15,14 +15,11 @@ import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
 import org.bukkit.Bukkit
 import org.bukkit.Chunk
-import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.block.Container
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.time.Duration
-import kotlin.random.Random
 
 class ExpandGui(private val p: Player,private val chunk: Chunk) {
     private var choose = 0
@@ -264,10 +261,10 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             Times.times(Duration.ofSeconds(1), Duration.ofSeconds(5), Duration.ofSeconds(1))))
     }
     private fun record(){
-        Listener.addChunkMap(p,chunk.x to chunk.z)
-        val playerDao = Listener.getPlayerDaoMap(p.name)!!
+        SingleListener.addChunkMap(p,chunk.x to chunk.z)
+        val playerDao = SingleListener.getPlayerDaoMap(p.name)!!
         playerDao.chunkCount += 1
-        Listener.setPlayerDaoMap(p.name,playerDao)
+        SingleListener.setPlayerDaoMap(p.name,playerDao)
         submit(async = true) {
             ChunkWorld.db.chunkCreate(ChunkDao().apply {
                 x = chunk.x
@@ -277,7 +274,7 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             ChunkWorld.db.playerUpdate(playerDao)
         }
         //生成屏障
-        WorldEdit.setBarrier(Listener.getChunkMap(p)!!,chunk.x to chunk.z,chunk.world)
+        WorldEdit.setBarrier(SingleListener.getChunkMap(p)!!,chunk.x to chunk.z,chunk.world)
     }
     private fun rebuild(){
         val material = Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!)

@@ -1,0 +1,73 @@
+package com.dongzh1.chunkworld.command
+
+import com.dongzh1.chunkworld.ChunkWorld
+import com.xbaimiao.easylib.command.ArgNode
+import com.xbaimiao.easylib.command.command
+import com.xbaimiao.easylib.util.CommandBody
+import com.xbaimiao.easylib.util.ECommandHeader
+import org.bukkit.World.Environment
+import org.bukkit.command.CommandSender
+import java.io.File
+
+@ECommandHeader(command = "chunkworld")
+object GroupCommand {
+    private val environment = ArgNode(("environment"),
+        exec = {
+            listOf("NORMAL","NETHER","THE_END")
+        }, parse = {
+            Environment.valueOf(it)
+        })
+    private val yaw = ArgNode(("yaw"),
+        exec = {
+            listOf("0","45","90")
+        }, parse = {
+            it.toFloat()
+        }
+    )
+    @CommandBody
+    val create = command<CommandSender>("create"){
+        description = "创建此玩家世界"
+        permission = "chunkworld.admin"
+        arg(environment){ environmentArg ->
+            players { playersArg ->
+                exec {
+                    val envir = valueOf(environmentArg)
+                    val p = valueOfOrNull(playersArg)
+                    if (p == null){
+                        sender.sendMessage("§c此玩家不在线，无法创建")
+                        return@exec
+                    }
+                    when(envir){
+                        Environment.NORMAL -> {
+                            if (File(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/world/region").exists()) {
+                                //说明这个世界已经创建了
+                                sender.sendMessage("§c此玩家主世界已创建,不能重复创建")
+                                return@exec
+                            }
+                            //创建世界
+                        }
+                        Environment.NETHER -> {
+                            if (File(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/nether/region").exists()) {
+                                //说明这个世界已经创建了
+                                sender.sendMessage("§c此玩家地狱世界已创建,不能重复创建")
+                                return@exec
+                            }
+                        }
+                        Environment.THE_END -> {
+                            if (File(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/end/region").exists()) {
+                                //说明这个世界已经创建了
+                                sender.sendMessage("§c此玩家末地世界已创建,不能重复创建")
+                                return@exec
+                            }
+                        }
+                        else -> {
+                            sender.sendMessage("§c世界类型错误")
+                            return@exec
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+}

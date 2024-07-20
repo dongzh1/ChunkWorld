@@ -24,22 +24,27 @@ class PlayerDao {
     @DatabaseField(dataType = DataType.STRING, columnName = "createTime")
     lateinit var createTime: String
 
+    //玩家上次上线时间
+    @DatabaseField(dataType = DataType.LONG, columnName = "createTime")
+    var lastTime: Long = 0
+
+    //世界传送点
+    @DatabaseField(dataType = DataType.STRING, columnName = "teleport")
+    lateinit var teleport: String
     //世界出生点
     @DatabaseField(dataType = DataType.STRING, columnName = "spawn")
     lateinit var spawn: String
+    //世界出生点
+    @DatabaseField(dataType = DataType.STRING, columnName = "netherSpawn")
+    lateinit var netherSpawn: String
+    //世界出生点
+    @DatabaseField(dataType = DataType.STRING, columnName = "endSpawn")
+    lateinit var endSpawn: String
 
     //世界状态,012分别代表开放,部分开放,关闭
     @DatabaseField(dataType = DataType.BYTE, columnName = "worldStatus")
     var worldStatus: Byte = 0
 
-    //占领区块数量，防便调用查看
-    @DatabaseField(dataType = DataType.INTEGER, columnName = "chunkCount")
-    var chunkCount: Int = 0
 
-    fun x() = spawn.split(",")[0].toDouble()
-    fun y() = spawn.split(",")[1].toDouble()
-    fun z() = spawn.split(",")[2].toDouble()
-    fun yaw() = spawn.split(",")[3].toFloat()
-    fun pitch() = spawn.split(",")[4].toFloat()
 
 }
