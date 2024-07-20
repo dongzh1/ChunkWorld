@@ -43,21 +43,21 @@ class SettingGui(private val p: Player,private val banPage:Int) {
             0.toByte() -> {
                 val item = Item.build(Material.VERDANT_FROGLIGHT,1,"开放世界", listOf("",
                     "§f此模式下所有玩家都可进入你的世界"),-1)
-                item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                item.addUnsafeEnchantment(Enchantment.LURE,1)
                 item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
                 basic.set(12,item)
             }
             1.toByte() -> {
                 val item = Item.build(Material.OCHRE_FROGLIGHT,1,"部分开放", listOf("",
                     "§f此模式下只有被信任的玩家可进入你的世界"),-1)
-                item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                item.addUnsafeEnchantment(Enchantment.LURE,1)
                 item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
                 basic.set(14,item)
             }
             2.toByte() -> {
                 val item = Item.build(Material.PEARLESCENT_FROGLIGHT,1,"关闭世界", listOf("",
                     "§f此模式下只有你可以进入你的世界"),-1)
-                item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                item.addUnsafeEnchantment(Enchantment.LURE,1)
                 item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
                 basic.set(16,item)
             }
@@ -154,7 +154,7 @@ class SettingGui(private val p: Player,private val banPage:Int) {
                         name = "§a游戏难度"
                         lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§b和平","§c和平困难下所有怪物会被清空","§c请慎重决定"))
                     })
-                    item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                    item.addUnsafeEnchantment(Enchantment.LURE,1)
                     item.addItemFlags(ItemFlag.HIDE_ENCHANTS)
                     basic.set(50,item)
                 }
@@ -163,7 +163,7 @@ class SettingGui(private val p: Player,private val banPage:Int) {
                         name = "§a游戏难度"
                         lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§a简单","§f比较简单的怪物强度"))
                     })
-                    item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                    item.addUnsafeEnchantment(Enchantment.LURE,1)
                     item.addItemFlags(ItemFlag.HIDE_ENCHANTS)
                     basic.set(51,item)
                 }
@@ -172,7 +172,7 @@ class SettingGui(private val p: Player,private val banPage:Int) {
                         name = "§a游戏难度"
                         lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§6普通","§f有一定难度的怪物水平"))
                     })
-                    item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                    item.addUnsafeEnchantment(Enchantment.LURE,1)
                     item.addItemFlags(ItemFlag.HIDE_ENCHANTS)
                     basic.set(52,item)
                 }
@@ -181,7 +181,7 @@ class SettingGui(private val p: Player,private val banPage:Int) {
                         name = "§a游戏难度"
                         lore.addAll(listOf("§f对应规则:","§7difficulty","§f游戏困难度","§f设置为§c困难","§c最高的难度","§f有些事件只能在这个难度触发"))
                     })
-                    item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                    item.addUnsafeEnchantment(Enchantment.LURE,1)
                     item.addItemFlags(ItemFlag.HIDE_ENCHANTS)
                     basic.set(53,item)
                 }
@@ -265,14 +265,14 @@ class SettingGui(private val p: Player,private val banPage:Int) {
 
         basic.onClick(12) {
             val item = it.view.getItem(12)
-            item!!.addUnsafeEnchantment(Enchantment.LUCK, 1)
+            item!!.addUnsafeEnchantment(Enchantment.LURE, 1)
             item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
             it.view.setItem(12, item)
             val item14 = it.view.getItem(14)
-            item14!!.removeEnchantment(Enchantment.LUCK)
+            item14!!.removeEnchantment(Enchantment.LURE)
             it.view.setItem(14, item14)
             val item16 = it.view.getItem(16)
-            item16!!.removeEnchantment(Enchantment.LUCK)
+            item16!!.removeEnchantment(Enchantment.LURE)
             it.view.setItem(16, item16)
             playerDao.worldStatus = 0
             Listener.setPlayerDaoMap(p.name, playerDao)
@@ -281,14 +281,14 @@ class SettingGui(private val p: Player,private val banPage:Int) {
         }
         basic.onClick(14) {
             val item = it.view.getItem(14)
-            item!!.addUnsafeEnchantment(Enchantment.LUCK,1)
+            item!!.addUnsafeEnchantment(Enchantment.LURE,1)
             item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
             it.view.setItem(14,item)
             val item12 = it.view.getItem(12)
-            item12!!.removeEnchantment(Enchantment.LUCK)
+            item12!!.removeEnchantment(Enchantment.LURE)
             it.view.setItem(12,item12)
             val item16 = it.view.getItem(16)
-            item16!!.removeEnchantment(Enchantment.LUCK)
+            item16!!.removeEnchantment(Enchantment.LURE)
             it.view.setItem(16,item16)
             playerDao.worldStatus = 1
             Listener.setPlayerDaoMap(p.name, playerDao)
@@ -296,14 +296,14 @@ class SettingGui(private val p: Player,private val banPage:Int) {
         }
         basic.onClick(16) {
             val item = it.view.getItem(16)
-            item!!.addUnsafeEnchantment(Enchantment.LUCK,1)
+            item!!.addUnsafeEnchantment(Enchantment.LURE,1)
             item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
             it.view.setItem(16,item)
             val item14 = it.view.getItem(14)
-            item14!!.removeEnchantment(Enchantment.LUCK)
+            item14!!.removeEnchantment(Enchantment.LURE)
             it.view.setItem(14,item14)
             val item12 = it.view.getItem(12)
-            item12!!.removeEnchantment(Enchantment.LUCK)
+            item12!!.removeEnchantment(Enchantment.LURE)
             it.view.setItem(12,item12)
             playerDao.worldStatus = 2
             Listener.setPlayerDaoMap(p.name, playerDao)

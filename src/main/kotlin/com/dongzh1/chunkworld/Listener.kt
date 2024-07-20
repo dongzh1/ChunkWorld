@@ -354,7 +354,6 @@ object Listener:Listener {
             PortalGui(e.player).build()
             return
         }
-
         //地狱邀请函和末地邀请函
         if (e.item?.hasLore("§f右键传送门打开传送菜单") == true){
             e.isCancelled = true
@@ -448,11 +447,13 @@ object Listener:Listener {
             e.isCancelled = true
             return
         }
+
         //不是自己的世界或被信任的世界就取消
         if (!isInTrustedWorld(e.player)){
             e.isCancelled = true
             return
         }
+
         //世界外面交互
         val chunk1 = e.clickedBlock?.chunk
         //玩家必在家园世界，所以看看这个世界的区块来决定能不能放置
@@ -466,13 +467,12 @@ object Listener:Listener {
                     break
                 }
             }
+            if (!isIn ){
+                //在边界外
+                e.isCancelled = true
+                return
+            }
         }
-        if (!isIn){
-            //在边界外
-            e.isCancelled = true
-            return
-        }
-
     }
     @EventHandler
     //阻止玩家被实体锁定目标

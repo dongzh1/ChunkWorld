@@ -48,19 +48,19 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             val itemStack = it.view.getItem(11)
             if (itemStack != null) {
                 val item = itemStack.clone()
-                item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                item.addUnsafeEnchantment(Enchantment.LURE,1)
                 item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
                 it.view.setItem(11,item)
                 val item13 = it.view.getItem(13)
                 if (item13 != null) {
                     val i13 = item13.clone()
-                    i13.removeEnchantment(Enchantment.LUCK)
+                    i13.removeEnchantment(Enchantment.LURE)
                     it.view.setItem(13,i13)
                 }
                 val item15 = it.view.getItem(15)
                 if (item15 != null) {
                     val i15 = item15.clone()
-                    i15.removeEnchantment(Enchantment.LUCK)
+                    i15.removeEnchantment(Enchantment.LURE)
                     it.view.setItem(15,i15)
                 }
             }
@@ -72,19 +72,19 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             val itemStack = it.view.getItem(13)
             if (itemStack != null) {
                 val item = itemStack.clone()
-                item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                item.addUnsafeEnchantment(Enchantment.LURE,1)
                 item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
                 it.view.setItem(13,item)
                 val item11 = it.view.getItem(11)
                 if (item11 != null) {
                     val i11 = item11.clone()
-                    i11.removeEnchantment(Enchantment.LUCK)
+                    i11.removeEnchantment(Enchantment.LURE)
                     it.view.setItem(11,i11)
                 }
                 val item15 = it.view.getItem(15)
                 if (item15 != null) {
                     val i15 = item15.clone()
-                    i15.removeEnchantment(Enchantment.LUCK)
+                    i15.removeEnchantment(Enchantment.LURE)
                     it.view.setItem(15,i15)
                 }
             }
@@ -96,19 +96,19 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
             val itemStack = it.view.getItem(15)
             if (itemStack != null) {
                 val item = itemStack.clone()
-                item.addUnsafeEnchantment(Enchantment.LUCK,1)
+                item.addUnsafeEnchantment(Enchantment.LURE,1)
                 item.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
                 it.view.setItem(15,item)
                 val item13 = it.view.getItem(13)
                 if (item13 != null) {
                     val i13 = item13.clone()
-                    i13.removeEnchantment(Enchantment.LUCK)
+                    i13.removeEnchantment(Enchantment.LURE)
                     it.view.setItem(13,i13)
                 }
                 val item11 = it.view.getItem(11)
                 if (item11 != null) {
                     val i11 = item11.clone()
-                    i11.removeEnchantment(Enchantment.LUCK)
+                    i11.removeEnchantment(Enchantment.LURE)
                     it.view.setItem(11,i11)
                 }
             }
@@ -187,36 +187,36 @@ class ExpandGui(private val p: Player,private val chunk: Chunk) {
 
         basic.onClick(11) {
             choose = 11
-            item11.addUnsafeEnchantment(Enchantment.LUCK,1)
+            item11.addUnsafeEnchantment(Enchantment.LURE,1)
             item11.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
             it.view.setItem(11,item11)
-            item13.removeEnchantment(Enchantment.LUCK)
+            item13.removeEnchantment(Enchantment.LURE)
             it.view.setItem(13,item13)
-            item15.removeEnchantment(Enchantment.LUCK)
+            item15.removeEnchantment(Enchantment.LURE)
             it.view.setItem(15,item15)
             it.view.setItem(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
                 null,-1))
         }
         basic.onClick(13) {
             choose = 13
-            item13.addUnsafeEnchantment(Enchantment.LUCK,1)
+            item13.addUnsafeEnchantment(Enchantment.LURE,1)
             item13.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
             it.view.setItem(13,item13)
-            item11.removeEnchantment(Enchantment.LUCK)
+            item11.removeEnchantment(Enchantment.LURE)
             it.view.setItem(11,item11)
-            item15.removeEnchantment(Enchantment.LUCK)
+            item15.removeEnchantment(Enchantment.LURE)
             it.view.setItem(15,item15)
             it.view.setItem(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
                 null,-1))
         }
         basic.onClick(15) {
             choose = 15
-            item15.addUnsafeEnchantment(Enchantment.LUCK,1)
+            item15.addUnsafeEnchantment(Enchantment.LURE,1)
             item15.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
             it.view.setItem(15,item15)
-            item13.removeEnchantment(Enchantment.LUCK)
+            item13.removeEnchantment(Enchantment.LURE)
             it.view.setItem(13,item13)
-            item11.removeEnchantment(Enchantment.LUCK)
+            item11.removeEnchantment(Enchantment.LURE)
             it.view.setItem(11,item11)
             it.view.setItem(30,Item.build(Material.LIME_CONCRETE,1,"§a确认生成",
                 null,-1))
