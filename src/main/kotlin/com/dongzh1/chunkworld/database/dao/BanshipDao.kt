@@ -10,11 +10,11 @@ class BanshipDao {
     var id: Int = 0
 
     //playerDao表里的玩家对应的id
-    @DatabaseField(canBeNull = false,dataType = DataType.INTEGER, columnName = "playerId")
+    @DatabaseField(canBeNull = false, dataType = DataType.INTEGER, columnName = "playerId")
     var playerId: Int = 0
 
     //被拉黑的玩家的id
-    @DatabaseField(canBeNull = false,dataType = DataType.INTEGER, columnName = "bannerId")
+    @DatabaseField(canBeNull = false, dataType = DataType.INTEGER, columnName = "bannerId")
     var bannerId: Int = 0
 
 

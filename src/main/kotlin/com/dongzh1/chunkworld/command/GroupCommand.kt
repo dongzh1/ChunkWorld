@@ -1,50 +1,30 @@
 package com.dongzh1.chunkworld.command
 
-import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.WorldEdit
-import com.dongzh1.chunkworld.database.dao.ChunkDao
-import com.dongzh1.chunkworld.database.dao.PlayerDao
-import com.dongzh1.chunkworld.listener.SingleListener.setBanMap
-import com.dongzh1.chunkworld.listener.SingleListener.setChunkMap
-import com.dongzh1.chunkworld.listener.SingleListener.setPlayerDaoMap
-import com.dongzh1.chunkworld.listener.SingleListener.setTrustMap
-import com.dongzh1.chunkworld.listener.SingleListener.setUUIDtoName
-import com.dongzh1.chunkworld.redis.RedisData
 import com.xbaimiao.easylib.command.ArgNode
 import com.xbaimiao.easylib.command.command
-import com.xbaimiao.easylib.skedule.SynchronizationContext
-import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.CommandBody
 import com.xbaimiao.easylib.util.ECommandHeader
-import net.kyori.adventure.text.Component
-import org.bukkit.Bukkit
-import org.bukkit.GameRule
-import org.bukkit.Location
 import org.bukkit.World.Environment
-import org.bukkit.World.Environment.*
-import org.bukkit.WorldCreator
-import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import java.io.File
 
 @ECommandHeader(command = "chunkworld")
 object GroupCommand {
     private val environment = ArgNode(("environment"),
         exec = {
-            listOf("NORMAL","NETHER")
+            listOf("NORMAL", "NETHER")
         }, parse = {
             Environment.valueOf(it)
         })
-    private
+
     @CommandBody
-    val tp = command<Player>("tp"){
+    private val tp = command<Player>("tp") {
         description = "传送到自己或别人家园，自己没有的话会创建"
         players(optional = true) {
             exec {
-                val p = valueOfOrNull(it)?:sender
-                if (p != sender){
+                val p = valueOfOrNull(it) ?: sender
+                if (p != sender) {
                     //去别人家，按理说应该菜单去，这个是给op的，让op能方便的去到任何人的家，所以判断权限
-                    if (!sender.hasPermission("chunkworld.tpOther")){
+                    if (!sender.hasPermission("chunkworld.tpOther")) {
                         sender.sendMessage("§c你无法使用此指令")
                         return@exec
                     }
@@ -53,6 +33,7 @@ object GroupCommand {
             }
         }
     }
+    /*
     @CommandBody
     val create = command<CommandSender>("create"){
         description = "创建此玩家世界并决定是否创建完毕后传送玩家过去，如果已经存在世界了，会加载世界并传送玩家过去"
@@ -236,4 +217,6 @@ object GroupCommand {
             }
         }
     }
+
+     */
 }
