@@ -480,4 +480,21 @@ object Command {
             }
         }
     }
+    @CommandBody
+    val loadworld = command<Player>("loadworld"){
+        booleans(optional = true) {
+            exec {
+                if (valueOfOrNull(it) == null){
+                    Bukkit.unloadWorld("chunkworlds/123456",true)
+                    Bukkit.unloadWorld("/home/Mcserver/worlds/123456",true)
+                    return@exec
+                }
+                val world = if (valueOf(it)){
+                    Bukkit.createWorld(WorldCreator("chunkworlds/123456"))
+                }else
+                    Bukkit.createWorld(WorldCreator("/home/Mcserver/worlds/123456"))
+                sender.teleportAsync(world!!.spawnLocation)
+            }
+        }
+    }
 }
