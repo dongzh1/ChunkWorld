@@ -197,22 +197,21 @@ object Tp {
      * 创建玩家世界并传送
      */
     fun createTp(p:Player){
-        val ipAndPort = RedisManager.getHighestTpsIP()
-        if (ipAndPort == null){
-            p.sendMessage("§c没有可用服务器，请联系管理员")
-            return
-        }
-        //复制世界
-        val file = File(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/world")
-        val templeFile = File(ChunkWorld.inst.dataFolder, "world")
-        //有level.dat_old文件说明是加载过的
-        if (File(file,"level.dat_old").exists()) {
-            //此世界已被加载过
-            p.sendMessage("§c你的世界已被加载过，但没有数据，请联系管理员")
-            return
-        }
-        //协程异步
         launchCoroutine(SynchronizationContext.ASYNC) {
+            val ipAndPort = RedisManager.getHighestTpsIP()
+            if (ipAndPort == null){
+                p.sendMessage("§c没有可用服务器，请联系管理员")
+                return@launchCoroutine
+            }
+            //复制世界
+            val file = File("chunkworlds/${p.uniqueId}/world")
+            val templeFile = File(ChunkWorld.inst.dataFolder, "world")
+            //有level.dat_old文件说明是加载过的
+            if (File(file,"level.dat_old").exists()) {
+                 //此世界已被加载过
+                p.sendMessage("§c你的世界已被加载过，但没有数据，请联系管理员")
+                return@launchCoroutine
+            }
             try {
                 templeFile.copyRecursively(file)
             }catch (ex:Exception) {
@@ -222,18 +221,17 @@ object Tp {
             }
             //复制完毕，加载世界
             if (ipAndPort == ChunkWorld.inst.config.getString("transferIP")!!+":"+Bukkit.getPort().toString()) {
-                submit {
-                    createWorldLocal(p.uniqueId,p.name).thenAccept {
-                        if (it.first){
-                            //创建成功
-                            p.sendMessage("§a世界创建成功，正在传送...")
-                            val l = it.second.split(",")
-                            to(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/world",
-                                l[0].toDouble(),l[1].toDouble(),l[2].toDouble(),l[3].toFloat(),l[4].toFloat(),p)
-                        }else {
-                            //创建失败
-                            p.sendMessage(it.second)
-                        }
+                SynchronizationContext.SYNC
+                createWorldLocal(p.uniqueId,p.name).thenAccept {
+                    if (it.first){
+                        //创建成功
+                        p.sendMessage("§a世界创建成功，正在传送...")
+                        val l = it.second.split(",")
+                        to(ChunkWorld.inst.config.getString("World")!!+"/${p.uniqueId}/world",
+                            l[0].toDouble(),l[1].toDouble(),l[2].toDouble(),l[3].toFloat(),l[4].toFloat(),p)
+                    }else {
+                        //创建失败
+                        p.sendMessage(it.second)
                     }
                 }
             }else{
