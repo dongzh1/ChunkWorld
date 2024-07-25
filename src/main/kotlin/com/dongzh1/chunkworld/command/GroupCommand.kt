@@ -60,54 +60,27 @@ object GroupCommand {
         arg(name, optional = true) {
             exec {
                 val name = valueOfOrNull(it)?:sender.name
-                /*
-                if (name != sender.name) {
-                    //去别人家，按理说应该菜单去，这个是给op的，让op能方便的去到任何人的家，所以判断权限
-                    if (!sender.hasPermission("chunkworld.tpOther")) {
-                        sender.sendMessage("§c你无法使用此指令")
-                        return@exec
-                    }
-                }
-
-                 */
-                //获取playerDao
-                var playerDao = RedisData.getPlayerDaoByName(name)
-                if (playerDao == null){
-                    //可能世界没加载，也可能还没创建世界
-                    submit(async = true) {
-                        playerDao = ChunkWorld.db.playerGet(name)
-                        if (playerDao == null){
-                            //说明这个玩家还没有创建世界,那就创建世界并传送
-                            if (name == sender.name) {
-                                //自己创建世界
-                                Tp.createTp(sender)
-                            }else{
-                                sender.sendMessage("§c此玩家还没有创建世界")
-                            }
+                launchCoroutine(SynchronizationContext.ASYNC) {
+                    val playerDao = RedisData.getPlayerDaoByName(name)?:ChunkWorld.db.playerGet(name)
+                    if (playerDao == null){
+                        if (name == sender.name){
+                            //创建独立世界
+                            Tp.createTp(sender)
+                            return@launchCoroutine
                         }else{
-                            submit {
-                                //说明世界创建过，传送就行
-                                Tp.to(playerDao!!.teleportWorldName,
-                                    playerDao!!.teleportX,
-                                    playerDao!!.teleportY,
-                                    playerDao!!.teleportZ,
-                                    playerDao!!.teleportYaw,
-                                    playerDao!!.teleportPitch,
-                                    sender,playerDao)
-                            }
+                            sender.sendMessage("§c此玩家还没有自己的独立世界")
+                            return@launchCoroutine
                         }
                     }
-                }else{
-                    //世界已经创建好甚至加载好了，传送过去
-                    Tp.to(playerDao!!.teleportWorldName,
-                        playerDao!!.teleportX,
-                        playerDao!!.teleportY,
-                        playerDao!!.teleportZ,
-                        playerDao!!.teleportYaw,
-                        playerDao!!.teleportPitch,
+                    //说明世界创建过，传送就行
+                    Tp.to(playerDao.teleportWorldName,
+                        playerDao.teleportX,
+                        playerDao.teleportY,
+                        playerDao.teleportZ,
+                        playerDao.teleportYaw,
+                        playerDao.teleportPitch,
                         sender,playerDao)
                 }
-
             }
         }
     }
