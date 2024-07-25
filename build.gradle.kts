@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.backend.common.phaser.transform
 
 plugins {
     java
-    id("com.github.johnrengelman.shadow") version ("8.1.1")
+    id("io.github.goooler.shadow") version "8.1.8"
     id("com.xbaimiao.easylib") version ("1.1.6")
     kotlin("jvm") version "1.9.20"
 }
@@ -17,7 +17,7 @@ easylib {
         pluginUpdateInfo = "更新消息"
         kotlinVersion = "1.9.20"
     }
-    version = "3.7.5"
+    version = "3.9.0"
 
     library("com.github.cryptomorin:XSeries:9.9.0", true) {
         relocate("com.cryptomorin.xseries", "${project.group}.shadow.xseries")
@@ -43,6 +43,7 @@ easylib {
         relocate("com.j256.ormlite", "${project.group}.shadow.ormlite")
     }
 
+
     relocate("com.xbaimiao.easylib", "${project.group}.easylib", false)
     relocate("kotlin", "${project.group}.shadow.kotlin", true)
     relocate("kotlinx", "${project.group}.shadow.kotlinx", true)
@@ -57,6 +58,8 @@ repositories {
     maven("https://maven.xbaimiao.com/repository/maven-public/")
     maven("https://papermc.io/repo/repository/maven-public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://repo.codemc.io/repository/maven-public/")
+
 }
 
 dependencies {
@@ -70,8 +73,9 @@ dependencies {
 
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     compileOnly(kotlin("stdlib-jdk8"))
+    compileOnly("de.tr7zw:item-nbt-api-plugin:2.13.1")
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
-    //compileOnly("org.spigotmc:spigot-api:1.19.3-R0.1-SNAPSHOT")
+    //compileOnly("org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT")
     compileOnly(fileTree("libs"))
 }
 

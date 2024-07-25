@@ -1,9 +1,6 @@
 package com.dongzh1.chunkworld.database
 
-import com.dongzh1.chunkworld.database.dao.BanshipDao
-import com.dongzh1.chunkworld.database.dao.ChunkDao
-import com.dongzh1.chunkworld.database.dao.FriendshipDao
-import com.dongzh1.chunkworld.database.dao.PlayerDao
+import com.dongzh1.chunkworld.database.dao.*
 import com.j256.ormlite.dao.Dao
 import com.j256.ormlite.stmt.QueryBuilder
 import com.xbaimiao.easylib.database.Ormlite
@@ -14,6 +11,14 @@ abstract class AbstractDatabaseApi(ormlite: Ormlite) {
     private val friendshipDao: Dao<FriendshipDao, Int> = ormlite.createDao(FriendshipDao::class.java)
     private val banshipDao: Dao<BanshipDao, Int> = ormlite.createDao(BanshipDao::class.java)
     private val chunkDao: Dao<ChunkDao, Int> = ormlite.createDao(ChunkDao::class.java)
+    private val prosperityDao: Dao<ProsperityDao, Int> = ormlite.createDao(ProsperityDao::class.java)
+
+    fun prosperitySet(dao: ProsperityDao) {
+        prosperityDao.createOrUpdate(dao)
+    }
+    fun prosperityGet(playerId: Int): ProsperityDao? {
+        return prosperityDao.queryForEq("playerID", playerId).firstOrNull()
+    }
 
     // 根据玩家名字获取玩家信息
     fun playerGet(name: String): PlayerDao? =
