@@ -16,6 +16,6 @@ redis:
 #每个服都应该有一个出生点，用作应急
 Location: "world,2.5,64.0,8.0,-90,0"
 LobbyServer: false
-transferIP: '127.0.0.1'
+serverName: "home"
 #此服每日重启时间,重启前会把玩家送到大厅,这个代表3点1分重启,资源世界固定每天晚上20点重置
 time: "3,0"

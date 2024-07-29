@@ -104,20 +104,40 @@ object WorldEdit {
 
     private fun copy(chunk: Chunk, targetChunk: Chunk) {
         val weWorld = BukkitAdapter.adapt(chunk.world)
-        val region = CuboidRegion(
-            weWorld,
-            BlockVector3.at(chunk.x * 16, -64, chunk.z * 16),
-            BlockVector3.at(chunk.x * 16 + 15, 319, chunk.z * 16 + 15)
-        )
-        val clipboard = BlockArrayClipboard(region)
-        region.compile(clipboard, weWorld)
-        clipboard.paste(
-            BukkitAdapter.adapt(targetChunk.world),
-            BlockVector3.at(targetChunk.x * 16, -64, targetChunk.z * 16),
-            false,
-            true,
-            null
-        )
+
+        if (chunk.world.environment == World.Environment.NORMAL){
+            val region = CuboidRegion(
+                weWorld,
+                BlockVector3.at(chunk.x * 16, -64, chunk.z * 16),
+                BlockVector3.at(chunk.x * 16 + 15, 319, chunk.z * 16 + 15)
+            )
+            val clipboard = BlockArrayClipboard(region)
+            region.compile(clipboard, weWorld)
+            clipboard.paste(
+                BukkitAdapter.adapt(targetChunk.world),
+                BlockVector3.at(targetChunk.x * 16, -64, targetChunk.z * 16),
+                false,
+                true,
+                null
+            )
+        }else{
+            val region = CuboidRegion(
+                weWorld,
+                BlockVector3.at(chunk.x * 16, 0, chunk.z * 16),
+                BlockVector3.at(chunk.x * 16 + 15, 128, chunk.z * 16 + 15)
+            )
+            val clipboard = BlockArrayClipboard(region)
+            region.compile(clipboard, weWorld)
+            clipboard.paste(
+                BukkitAdapter.adapt(targetChunk.world),
+                BlockVector3.at(targetChunk.x * 16, 0, targetChunk.z * 16),
+                false,
+                true,
+                null
+            )
+        }
+
+
     }
 
     /**
@@ -126,14 +146,26 @@ object WorldEdit {
     fun copyChunkBiome(chunk: Chunk, targetChunk: Chunk) {
         TaskManager.taskManager().async {
             copy(chunk, targetChunk)
-            val pos1 = Location(targetChunk.world, targetChunk.x * 16.toDouble(), -64.0, targetChunk.z * 16.toDouble())
-            val pos2 = Location(
-                targetChunk.world,
-                targetChunk.x * 16.toDouble() + 15,
-                319.0,
-                targetChunk.z * 16.toDouble() + 15
-            )
-            setBlock(pos1, pos2, BlockTypes.AIR!!)
+            if (chunk.world.environment == World.Environment.NORMAL){
+                val pos1 = Location(targetChunk.world, targetChunk.x * 16.toDouble(), -64.0, targetChunk.z * 16.toDouble())
+                val pos2 = Location(
+                    targetChunk.world,
+                    targetChunk.x * 16.toDouble() + 15,
+                    319.0,
+                    targetChunk.z * 16.toDouble() + 15
+                )
+                setBlock(pos1, pos2, BlockTypes.AIR!!)
+            }else{
+                val pos1 = Location(targetChunk.world, targetChunk.x * 16.toDouble(), 0.0, targetChunk.z * 16.toDouble())
+                val pos2 = Location(
+                    targetChunk.world,
+                    targetChunk.x * 16.toDouble() + 15,
+                    128.0,
+                    targetChunk.z * 16.toDouble() + 15
+                )
+                setBlock(pos1, pos2, BlockTypes.AIR!!)
+            }
+
         }
     }
 
@@ -197,9 +229,16 @@ object WorldEdit {
      * @param chunk 玩家要占领的区块
      */
     fun setBarrier(chunkList: Set<Pair<Int, Int>>, chunk: Pair<Int, Int>, world: World) {
-        //获取设置区块的两角坐标
-        val pos1 = Location(world, chunk.first * 16.toDouble(), -64.0, chunk.second * 16.toDouble())
-        val pos2 = Location(world, chunk.first * 16.toDouble() + 15, 319.0, chunk.second * 16.toDouble() + 15)
+        val pos1: Location
+        val pos2: Location
+        if (world.environment == World.Environment.NORMAL){
+            //获取设置区块的两角坐标
+            pos1 = Location(world, chunk.first * 16.toDouble(), -64.0, chunk.second * 16.toDouble())
+            pos2 = Location(world, chunk.first * 16.toDouble() + 15, 319.0, chunk.second * 16.toDouble() + 15)
+        }else{
+            pos1 = Location(world, chunk.first * 16.toDouble(), 0.0, chunk.second * 16.toDouble())
+            pos2 = Location(world, chunk.first * 16.toDouble() + 15, 128.0, chunk.second * 16.toDouble() + 15)
+        }
         //获取围绕区块的四面
         val barrierRegions = mutableListOf(
             //北面

@@ -1,10 +1,7 @@
 package com.dongzh1.chunkworld.redis
 
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.ChunkWorld.Companion.CHANNEL
-import com.xbaimiao.easylib.util.submit
 import org.bukkit.Bukkit
-import java.util.*
 
 object RedisManager {
 
@@ -26,6 +23,11 @@ object RedisManager {
     fun getAllNameUuid(): Map<String,String> {
         jedisPool.resource.use {
             return it.hgetAll("ChunkWorld_NameUuid")
+        }
+    }
+    fun getAllUuid():Set<String>{
+        jedisPool.resource.use {
+            return it.hkeys("ChunkWorld_PlayerDao")
         }
     }
 
@@ -113,28 +115,28 @@ object RedisManager {
     /**
      * 将本服的tps上传到redis,每分钟定时上传
      */
-    fun setIP() {
+    fun setServerName() {
         jedisPool.resource.use {
             it.hset(
                 "ChunkWorld_IP",
-                ChunkWorld.inst.config.getString("transferIP")!! + ":${Bukkit.getPort()}",
+                ChunkWorld.inst.config.getString("serverName")!!,
                 Bukkit.getTPS().first().toString() + "|" + System.currentTimeMillis()
             )
         }
     }
-    fun delIP(){
+    fun delServerName(){
         jedisPool.resource.use {
-            it.hdel("ChunkWorld_IP", ChunkWorld.inst.config.getString("transferIP")!! + ":${Bukkit.getPort()}")
+            it.hdel("ChunkWorld_IP", ChunkWorld.inst.config.getString("serverName")!!)
         }
     }
 
     /**
      * 获取tps最高的服务器ip，方便转发过去
      */
-    fun getHighestTpsIP(): String? {
+    fun getHighestTpsServerName(): String? {
         jedisPool.resource.use {
             val ipTPS = it.hgetAll("ChunkWorld_IP")
-            var ip: String? = null
+            var serverName: String? = null
             var maxTps = 0.0
             ipTPS.forEach { map ->
                 //如果现在时间比存的时间大2分钟，就可以说明这个服死了，把他数据清除
@@ -147,11 +149,11 @@ object RedisManager {
                 }
                 if (tps > maxTps) {
                     maxTps = tps
-                    ip = map.key
+                    serverName = map.key
                 }
             }
             //现在就是最大的
-            return ip
+            return serverName
         }
     }
     /**
@@ -159,7 +161,7 @@ object RedisManager {
      */
     fun setLobbyIP(){
         jedisPool.resource.use {
-            it.set("ChunkWorld_LobbyIP", ChunkWorld.inst.config.getString("transferIP")!! + ":${Bukkit.getPort()}")
+            it.set("ChunkWorld_LobbyIP", ChunkWorld.inst.config.getString("serverName")!!)
         }
     }
     fun getLobbyIP(): Pair<String,Int>? {
@@ -168,5 +170,8 @@ object RedisManager {
             val list = ip.split(":")
             return list[0] to list[1].toInt()
         }
+    }
+    fun setTransfer(){
+
     }
 }

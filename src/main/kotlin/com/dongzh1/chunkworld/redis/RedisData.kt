@@ -2,6 +2,7 @@ package com.dongzh1.chunkworld.redis
 
 import com.dongzh1.chunkworld.database.dao.ChunkDao
 import com.dongzh1.chunkworld.database.dao.PlayerDao
+import org.bukkit.entity.Player
 import java.util.*
 
 /**
@@ -86,6 +87,9 @@ object RedisData {
         }
         RedisManager.setChunks(uuidString, normalChunks, netherChunks)
     }
+    fun addChunk(uuidString: String,chunk:Pair<Int,Int>){
+
+    }
     /**
      * 删除这个玩家的区块信息
      */
@@ -100,6 +104,37 @@ object RedisData {
         val stringFriends = RedisManager.getFriends(uuidString) ?: return null
         //先根据"|"分割成一对一对去掉最后一个空值，然后把每一对转化为int to int 最后把list变成set
         return stringFriends.split("|").toMutableList().dropLast(1).toSet()
+    }
+    fun removeFriend(player:Player,traget:Player){
+        //todo
+        val ship1 = getFriendsAndBanner(player.uniqueId.toString())!!
+        val ship2 = getFriendsAndBanner(traget.uniqueId.toString())!!
+        val friends1 = ship1.first.toMutableSet()
+        val friends2 = ship2.first.toMutableSet()
+        friends1.remove(traget.uniqueId.toString())
+        friends2.remove(player.uniqueId.toString())
+        setShip(player.uniqueId.toString(),friends1.map { UUID.fromString(it) }.toSet(),ship1.second.map { UUID.fromString(it) }.toSet())
+        setShip(traget.uniqueId.toString(),friends2.map { UUID.fromString(it) }.toSet(),ship2.second.map { UUID.fromString(it) }.toSet())
+    }
+    fun removeFriend(player:Player,traget:String){
+        val ship1 = getFriendsAndBanner(player.uniqueId.toString())!!
+        val friends1 = ship1.first.toMutableSet()
+        friends1.remove(traget)
+        setShip(player.uniqueId.toString(),friends1.map { UUID.fromString(it) }.toSet(),ship1.second.map { UUID.fromString(it) }.toSet())
+        val ship2 = getFriendsAndBanner(traget) ?: return
+        val friends2 = ship2.first.toMutableSet()
+        friends2.remove(player.uniqueId.toString())
+        setShip(traget,friends2.map { UUID.fromString(it) }.toSet(),ship2.second.map { UUID.fromString(it) }.toSet())
+    }
+    fun removeBanner(player:Player,traget:String){
+        val ship1 = getFriendsAndBanner(player.uniqueId.toString())!!
+        val banners1 = ship1.second.toMutableSet()
+        banners1.remove(traget)
+        setShip(player.uniqueId.toString(),ship1.first.map { UUID.fromString(it) }.toSet(),banners1.map { UUID.fromString(it) }.toSet())
+        val ship2 = getFriendsAndBanner(traget) ?: return
+        val banners2 = ship2.second.toMutableSet()
+        banners2.remove(player.uniqueId.toString())
+        setShip(traget,ship2.first.map { UUID.fromString(it) }.toSet(),banners2.map { UUID.fromString(it) }.toSet())
     }
 
     /**
@@ -117,6 +152,26 @@ object RedisData {
         val friends = stringFriendsAndBanners.first.split("|").toMutableList().dropLast(1).toSet()
         val banners = stringFriendsAndBanners.second.split("|").toMutableList().dropLast(1).toSet()
         return friends to banners
+    }
+    fun addFriend(player:Player,traget:Player){
+        val ship1 = getFriendsAndBanner(player.uniqueId.toString())!!
+        val ship2 = getFriendsAndBanner(traget.uniqueId.toString())!!
+        val friends1 = ship1.first.toMutableSet()
+        val friends2 = ship2.first.toMutableSet()
+        friends1.add(traget.uniqueId.toString())
+        friends2.add(player.uniqueId.toString())
+        setShip(player.uniqueId.toString(),friends1.map { UUID.fromString(it) }.toSet(),ship1.second.map { UUID.fromString(it) }.toSet())
+        setShip(traget.uniqueId.toString(),friends2.map { UUID.fromString(it) }.toSet(),ship2.second.map { UUID.fromString(it) }.toSet())
+    }
+    fun addBanner(player:Player,traget:Player){
+        val ship1 = getFriendsAndBanner(player.uniqueId.toString())!!
+        val ship2 = getFriendsAndBanner(traget.uniqueId.toString())!!
+        val banners1 = ship1.second.toMutableSet()
+        val banners2 = ship2.second.toMutableSet()
+        banners1.add(traget.uniqueId.toString())
+        banners2.add(player.uniqueId.toString())
+        setShip(player.uniqueId.toString(),ship1.first.map { UUID.fromString(it) }.toSet(),banners1.map { UUID.fromString(it) }.toSet())
+        setShip(traget.uniqueId.toString(),ship2.first.map { UUID.fromString(it) }.toSet(),banners2.map { UUID.fromString(it) }.toSet())
     }
 
     /**

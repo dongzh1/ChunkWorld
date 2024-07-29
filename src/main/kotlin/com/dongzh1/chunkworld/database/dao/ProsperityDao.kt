@@ -22,5 +22,4 @@ class ProsperityDao {
     @DatabaseField(canBeNull = false, dataType = DataType.INTEGER, columnName = "decoration")
     var decoration: Int = 0
 
-
 }

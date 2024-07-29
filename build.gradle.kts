@@ -60,6 +60,7 @@ repositories {
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://repo.codemc.io/repository/maven-public/")
 
+
 }
 
 dependencies {

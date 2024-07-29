@@ -48,24 +48,21 @@ class ListGui(private val p: Player, private val page:Int,private val isTrusted:
         val friendsAndBanners = RedisData.getFriendsAndBanner(p.uniqueId.toString())!!
         val friends = friendsAndBanners.first.map { UUID.fromString(it) }
         val banners = friendsAndBanners.second.map { UUID.fromString(it) }
-        val players = Bukkit.getOnlinePlayers().map { it.name }
         //玩家世界
         val playSlots = listOf(19,20,21,22,23,24,25,28,29,30,31,32,33,34,37,38,39,40,41,42,43)
         val playerDaos = if (!isTrusted) getPlayerData(playSlots.size)
         else friends.mapNotNull { RedisData.getPlayerDao(it.toString())?:ChunkWorld.db.playerGet(it) }
+        val localWorldNameList = Bukkit.getWorlds().filter { it.name.startsWith("chunkworlds/") }.map { it.name }
+        val localeUUIDs = localWorldNameList.map { it.split("/").last() }.toSet()
         for (i in playSlots.indices){
             val playerDao = playerDaos.getOrNull(i)?:break
             basic.set(playSlots[i], buildItem(Material.PLAYER_HEAD, builder = {
                 customModelData = 10006
                 skullOwner = playerDao.name
                 name = "§7${playerDao.name}的独立世界"
-                if (players.contains(playerDao.name))
-                    lore.add("§3本服世界")
-                else lore.add("§7跨服世界")
-                if (friends.contains(playerDao.uuid))
-                    lore.add("§a共享世界")
-                if (banners.contains(playerDao.uuid))
-                    lore.add("§c相互拉黑")
+                if (localeUUIDs.contains(playerDao.uuid.toString())) lore.add("§b此服世界")
+                if (friends.contains(playerDao.uuid)) lore.add("§a共享世界")
+                if (banners.contains(playerDao.uuid)) lore.add("§c相互拉黑")
                 lore.add("§7创建时间:")
                 lore.add("§7"+playerDao.createTime)
                 lore.add("")
@@ -104,14 +101,16 @@ class ListGui(private val p: Player, private val page:Int,private val isTrusted:
         }
         basic.onClick { it.isCancelled = true }
         basic.onClick(2) {
-            //todo
+            p.closeInventory()
+            SetGui(p).build()
         }
         basic.onClick(4) {
             p.closeInventory()
             p.performCommand("chunkworld tp")
         }
         basic.onClick(6) {
-            //todo
+            p.closeInventory()
+            PlayerGui(p,1).build()
         }
         basic.onClick(8) { p.closeInventory() }
         //传送到其他玩家那里已注册
@@ -139,21 +138,23 @@ class ListGui(private val p: Player, private val page:Int,private val isTrusted:
      * @return 返回玩家数据
      */
     private fun getPlayerData(size:Int): List<PlayerDao> {
+        //应该是本服的世界在前面
         val needSize = page * size
+        val worldNameList = Bukkit.getWorlds().filter { it.name.startsWith("chunkworlds/") }.map { it.name }
+        val uuidSet = worldNameList.map { it.split("/").last() }.toMutableSet()
         //排序规则按照本服在线玩家，群组在线玩家和不在线玩家顺序排列，优先世界加载了的玩家
-        val players = Bukkit.getOnlinePlayers().map { it.name }.toMutableList()
-        if (players.size >= needSize) {
+        if (uuidSet.size >= needSize) {
             //如果在线玩家数量大于等于size，那么直接返回
-            val daos = players.mapNotNull { RedisData.getPlayerDaoByName(it) }
+            val daos = uuidSet.mapNotNull { RedisData.getPlayerDao(it) }
             //可能有在线但是世界没加载的玩家
             if (daos.size >= needSize) {
                 //返回对应页码的数据
                 return daos.subList((page-1)*size,page*size)
             }
         }
-        RedisManager.getAllNameUuid().keys.forEach { if (!players.contains(it)) players.add(it) }
+        uuidSet.addAll(RedisManager.getAllUuid())
         //现在加入了群组玩家
-        val daos = players.mapNotNull { RedisData.getPlayerDaoByName(it) }
+        val daos = uuidSet.mapNotNull { RedisData.getPlayerDao(it) }
         if (daos.size >= needSize){
             //返回对应页码的数据
             return daos.subList((page-1)*size,page*size)

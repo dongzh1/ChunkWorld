@@ -1,5 +1,6 @@
 package com.dongzh1.chunkworld
 
+import com.dongzh1.chunkworld.command.GroupCommand
 import com.dongzh1.chunkworld.database.AbstractDatabaseApi
 import com.dongzh1.chunkworld.database.MysqlDatabaseApi
 import com.dongzh1.chunkworld.database.SQLiteDatabaseApi
@@ -25,11 +26,7 @@ import org.bukkit.World
 import org.bukkit.WorldCreator
 import redis.clients.jedis.JedisPool
 import java.io.File
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.concurrent.CompletableFuture
 
 @Suppress("unused")
 class ChunkWorld : EasyPlugin() {
@@ -51,27 +48,29 @@ class ChunkWorld : EasyPlugin() {
     override fun onLoad() {
         super.onLoad()
         saveDefaultConfig()
-        //准备好资源世界的备份，方便资源世界替换,先删除原来的，再生成新的，再卸载世界
-        val chunkWorldBackup = File(Bukkit.getWorldContainer(), "chunkworld_backup")
-        val netherBackup = File(Bukkit.getWorldContainer(), "world_nether_backup")
-        val endBackup = File(Bukkit.getWorldContainer(), "world_the_end_backup")
-        deleteWorld(chunkWorldBackup)
-        deleteWorld(netherBackup)
-        deleteWorld(endBackup)
+        //大厅服不需要
+        if (!config.getBoolean("LobbyServer")){
+            //准备好资源世界的备份，方便资源世界替换,先删除原来的，再生成新的，再卸载世界
+            val chunkWorldBackup = File(Bukkit.getWorldContainer(), "chunkworld_backup")
+            val netherBackup = File(Bukkit.getWorldContainer(), "world_nether_backup")
+            val endBackup = File(Bukkit.getWorldContainer(), "world_the_end_backup")
+            deleteWorld(chunkWorldBackup)
+            deleteWorld(netherBackup)
+            deleteWorld(endBackup)
+        }
     }
 
     override fun enable() {
         Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f插件已加载")
         //释放世界文件
         loadResource()
-        //把删除的备份世界创建起来
-        createBackup()
         //确定出生点坐标
         val location = config.getString("Location")!!.split(",")
         val world = Bukkit.getWorld(location[0])
         spawnLocation = Location(world,location[1].toDouble(),location[2].toDouble(),location[3].toDouble(),location[4].toFloat(),location[5].toFloat())
         //赋值数据库
         if (config.getBoolean("Mysql.Enable")) {
+            Bukkit.getMessenger().registerOutgoingPluginChannel(this, "BungeeCord")
             //使用mysql的同时redis也要启用
             db = MysqlDatabaseApi()
             Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f启用群组模式，链接mysql成功")
@@ -92,7 +91,7 @@ class ChunkWorld : EasyPlugin() {
             Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f链接redis库成功")
             if (!config.getBoolean("LobbyServer")) {
                 //说明不是大厅，要上传tps数据,每分钟都上传
-                uploadTpsTask = submit(delay = 1, period = 20 * 60) { RedisManager.setIP() }
+                uploadTpsTask = submit(delay = 1, period = 20 * 60) { RedisManager.setServerName() }
             }else{
                 //大厅要注册大厅的ip和端口，其他服离线了进入大厅
                 RedisManager.setLobbyIP()
@@ -100,13 +99,15 @@ class ChunkWorld : EasyPlugin() {
             //注册全局监听
             registerListener(GroupListener)
             //注册指令
-            registerCommand(GroupListener)
+            registerCommand(GroupCommand)
         } else {
             db = SQLiteDatabaseApi()
             Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f启用单端模式，链接sqldb成功")
         }
         //不是大厅服才加载资源世界和重启
         if (!config.getBoolean("LobbyServer")){
+            //把删除的备份世界创建起来
+            createBackup()
             //加载资源世界，用于获取区块和探索
             loadWorlds(false)
             val time = config.getString("time")!!.split(",").map { it.toInt() }
@@ -220,7 +221,7 @@ class ChunkWorld : EasyPlugin() {
         if (config.getBoolean("Mysql.Enable")) {
             uploadTpsTask?.cancel()
             //清除本服的ip数据
-            RedisManager.delIP()
+            RedisManager.delServerName()
             try {
                 redisListener!!.unsubscribe()
                 jedisPool.close()
