@@ -31,7 +31,7 @@ object RedisPush {
     fun teleportWorld(playerName: String,worldName:String,x:Double,y:Double,z:Double): CompletableFuture<String?> {
         val future = CompletableFuture<String?>()
         addFuture("teleportWorld$worldName$playerName",future)
-        submit(delay = 100) {
+        submit(delay = 60) {
             if (!future.isDone){
                 removeFuture("teleportWorld$worldName$playerName")
                 future.complete(null)

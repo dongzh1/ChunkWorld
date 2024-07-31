@@ -122,6 +122,7 @@ object RedisManager {
                 ChunkWorld.inst.config.getString("serverName")!!,
                 Bukkit.getTPS().first().toString() + "|" + System.currentTimeMillis()
             )
+
         }
     }
     fun delServerName(){

@@ -12,6 +12,7 @@ import com.dongzh1.chunkworld.redis.RedisManager
 import com.google.common.base.Utf8
 import com.xbaimiao.easylib.util.hasLore
 import com.xbaimiao.easylib.util.submit
+import io.papermc.paper.event.entity.EntityPortalReadyEvent
 import io.papermc.paper.event.player.PlayerFailMoveEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.title.Title
@@ -51,12 +52,21 @@ object GroupListener : Listener {
     private fun getLocation(name: String):Location?{
         return locationMap[name]
     }
+    private val respawn = mutableMapOf<Player,Location>()
     private fun isInTrustedWorld(player: Player):Boolean{
         if (player.world.name == "chunkworlds/world/${player.uniqueId}"
             || player.world.name == "chunkworlds/world/${player.uniqueId}")
             return true
         val trustList = RedisData.getFriends(player.uniqueId.toString()) ?: return false
         return trustList.contains(player.world.name.split("/").last())
+    }
+    private fun isBeBan(player: Player,uuid: String):Boolean{
+        val banList = RedisData.getBanners(player.uniqueId.toString())!!
+        return banList.contains(uuid)
+    }
+    private fun isBeTrust(player: Player,uuid: String):Boolean{
+        val trustList = RedisData.getFriends(player.uniqueId.toString())!!
+        return trustList.contains(uuid)
     }
 
     @EventHandler
@@ -374,62 +384,62 @@ object GroupListener : Listener {
     @EventHandler
     fun worldTp(e: PlayerTeleportEvent) {
         //传送不涉及世界切换就返回
-        if (e.to.world == e.from.world) return
+        val world = e.to.world
+        if (world == e.from.world) return
         val player = e.player
-        //todo
         //从其他世界到资源世界
-        if (e.to.world.name == ((ChunkWorld.inst.config.getString("Resource") ?: "chunkworld") + "_zy")){
+        if (world.name == ("chunkworld_zy")){
             //判断区块等级
-            val dao = getPlayerDaoMap(e.player.name)
-            if (dao!!.chunkCount >=9){
-                e.player.sendMessage("§a您成功传送到资源世界,请尽可能活下去")
+            val chunks = RedisData.getChunks(player.uniqueId.toString(),0.toByte())
+            if (chunks!!.size >=9){
+                player.sendMessage("§a您成功传送到资源世界,请尽可能活下去")
                 return
             }else{
                 e.isCancelled = true
-                e.player.sendMessage("§c传送取消,去到资源世界需要解锁至少9个区块")
+                player.sendMessage("§c传送取消,去到资源世界需要解锁至少9个区块")
                 return
             }
         }
-        if (e.to.world.name == "world_nether"){
+        if (world.name == "world_nether_zy"){
             //消耗邀请函并传送
-            if (Item.deduct(Item.netherItem(e.player),e.player,1)){
-                e.player.sendMessage("§a你跨世界传送到了§4资源地狱§a,消耗 §4地狱邀请函§a x1")
+            if (Item.deduct(Item.netherItem(player),player,1)){
+                player.sendMessage("§a你跨世界传送到了§4资源地狱§a,消耗 §4地狱邀请函§a x1")
                 return
             }else{
                 //公共邀请函判断
-                if (Item.deduct(Item.netherItem(),e.player,1)){
-                    e.player.sendMessage("§a你跨世界传送到了§4资源地狱§a,消耗 §4地狱邀请函§a x1")
+                if (Item.deduct(Item.netherItem(),player,1)){
+                    player.sendMessage("§a你跨世界传送到了§4资源地狱§a,消耗 §4地狱邀请函§a x1")
                     return
                 }else{
-                    e.player.sendMessage("§c你没有§4地狱邀请函，无法跨世界传送到资源地狱")
+                    player.sendMessage("§c你没有§4地狱邀请函，无法跨世界传送到资源地狱")
                     e.isCancelled = true
                     return
                 }
             }
         }
-        if (e.to.world.name == "world_the_end"){
+        if (world.name == "world_the_end"){
             //消耗邀请函并传送
-            if (Item.deduct(Item.endItem(e.player),e.player,1)){
-                e.player.sendMessage("§a你跨世界传送到了§5资源末地§a,消耗 §5末地邀请函§a x1")
+            if (Item.deduct(Item.endItem(player),player,1)){
+                player.sendMessage("§a你跨世界传送到了§5资源末地§a,消耗 §5末地邀请函§a x1")
                 return
             }else{
-                if (Item.deduct(Item.endItem(),e.player,1)){
-                    e.player.sendMessage("§a你跨世界传送到了§5资源末地§a,消耗 §5末地邀请函§a x1")
+                if (Item.deduct(Item.endItem(),player,1)){
+                    player.sendMessage("§a你跨世界传送到了§5资源末地§a,消耗 §5末地邀请函§a x1")
                     return
                 }else{
-                    e.player.sendMessage("§c你没有§5末地邀请函，无法跨世界传送到资源末地")
+                    player.sendMessage("§c你没有§5末地邀请函，无法跨世界传送到资源末地")
                     e.isCancelled = true
                     return
                 }
             }
         }
         //不是玩家世界就不管
-        if (!e.to.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) return
+        if (!world.name.contains("chunkworlds/")) return
         //如果是自己的世界，那也没啥好取消的
-        if (e.to.world.name == ChunkWorld.inst.config.getString("World")!!+"/${player.uniqueId}") return
+        if (world.name == "chunkworlds/world/${player.uniqueId}" || world.name == "chunkworlds/nether/${player.uniqueId}") return
         //现在确定是别人的家园世界,获取对应世界玩家的uuid
-        val uuid = UUID.fromString(e.to.world.name.split("/").last())
-        val playerDao = getPlayerDaoMap(uuid)
+        val uuid = world.name.split("/").last()
+        val playerDao = RedisData.getPlayerDao(uuid)
         //查看是否能传送
         if (!e.player.isOp){
             when(playerDao!!.worldStatus) {
@@ -467,7 +477,6 @@ object GroupListener : Listener {
     @EventHandler
     fun worldChange(e: PlayerChangedWorldEvent){
         //world世界和家园世界为冒险模式，主人和信任者除外
-        //todo
         val player = e.player
         //玩家去主城，就改为冒险模式
         if (player.world.name == "world"){
@@ -475,7 +484,7 @@ object GroupListener : Listener {
             return
         }
         //不是玩家世界就生存
-        if (!player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)) {
+        if (!player.world.name.contains("chunkworlds/")) {
             player.gameMode = GameMode.SURVIVAL
             return
         }
@@ -492,11 +501,17 @@ object GroupListener : Listener {
      * 家园穿过地狱门
      */
     @EventHandler
-    fun portal(e:PlayerPortalEvent){
+    fun portal(e:EntityPortalEnterEvent){
         e.isCancelled = true
+        //todo
+        /*
         e.player.showTitle(Title.title(Component.text("§d跨界传送"), Component.text("§f请退出传送门范围,并§8[§b右键§8]§f传送门选择目标"),
             Title.Times.times(Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(1))))
-        /*
+        val playerDao = RedisData.getPlayerDao(p.uniqueId.toString())
+        if (p.world.name == "chunkworlds/world/${p.uniqueId}"){
+            p.teleportAsync(Location(Bukkit.getWorld("chunk"),playerDao!!.nX,playerDao.nY,playerDao.nZ,playerDao.nYaw,playerDao.nPitch))
+        }
+
         if (e.player.world.name.contains(ChunkWorld.inst.config.getString("World")!!)){
             val locationString = ChunkWorld.inst.config.getString("Location")!!
             val worldName = locationString.split(",")[0]
@@ -525,9 +540,20 @@ object GroupListener : Listener {
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     fun death(e: PlayerDeathEvent){
-        val dao = getPlayerDaoMap(e.player.name)
-        val world = Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}")
-        e.player.respawnLocation = Location(world,dao!!.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
+        val p = e.player
+        val dao = RedisData.getPlayerDao(p.uniqueId.toString())
+        if (p.world.name == "chunkworlds/world/${p.uniqueId}"){
+            val world = p.world
+            val location = Location(world,dao!!.wX,dao.wY,dao.wZ,dao.wYaw,dao.wPitch)
+            respawn[p] = location
+        }
+        if (p.world.name == "chunkworlds/nether/${p.uniqueId}"){
+            val world = p.world
+            val location = Location(world,dao!!.nX,dao.nY,dao.nZ,dao.nYaw,dao.nPitch)
+            respawn[p] = location
+        }
+        submit(delay = 60) { respawn.remove(p) }
+
 
         /*
         if (e.player.world.name == ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"){
@@ -542,10 +568,22 @@ object GroupListener : Listener {
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     fun reborn(e:PlayerRespawnEvent){
+        val location = respawn[e.player]
+        if (location != null){
+            e.respawnLocation = location
+            respawn.remove(e.player)
+        }
+
+
+
+
+
+
+
+
+
         //出生在自己家园
-        val dao = getPlayerDaoMap(e.player.name)!!
-        e.respawnLocation = Location(Bukkit.getWorld(ChunkWorld.inst.config.getString("World")!!+"/${e.player.uniqueId}"),
-            dao.x(),dao.y(),dao.z(),dao.yaw(),dao.pitch())
+        //val dao = RedisData.getPlayerDao(e.player.uniqueId.toString())
 
     }
     /**

@@ -58,12 +58,15 @@ class RedisListener : JedisPubSub() {
                             }
                             val worldCreator = WorldCreator(worldName).keepSpawnLoaded(TriState.FALSE)
                             val world = worldCreator.createWorld()
+                            Bukkit.getConsoleSender().sendMessage("§a世界 $worldName 加载中")
                             if (world != null) {
+                                Bukkit.getConsoleSender().sendMessage("§a世界 $worldName 加载成功")
                                 //加载成功
                                 val location = Location(world, xyz[0].toDouble(), xyz[1].toDouble(), xyz[2].toDouble())
                                 world.getChunkAtAsync(location)
                                 GroupListener.addLocation(playerName,location)
                                 RedisPush.loadWorldResult(targetServerName,worldName+playerName,"true")
+                                Bukkit.getConsoleSender().sendMessage("§a世界 $worldName 信息发送")
                             }else{
                                 RedisPush.loadWorldResult(targetServerName,worldName+playerName,null)
                             }
@@ -72,8 +75,10 @@ class RedisListener : JedisPubSub() {
                 }
                 "loadWorldResult" -> {
                     val serverName = mList[2]
+                    Bukkit.getConsoleSender().sendMessage("§a收到世界加载结果")
                     //找到发出请求的服务器
                     if (ChunkWorld.inst.config.getString("serverName")!! == serverName){
+                        Bukkit.getConsoleSender().sendMessage("§a找到发出请求的服务器")
                         val worldNameAndPlayerName = mList[1]
                         val result = mList[3]
                         RedisPush.getFuture("loadWorld$worldNameAndPlayerName")?.complete(if (result == "true") "true" else null)

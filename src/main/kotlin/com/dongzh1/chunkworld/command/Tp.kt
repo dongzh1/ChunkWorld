@@ -212,6 +212,7 @@ object Tp {
             world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS,0)
             world.setGameRule(GameRule.DO_FIRE_TICK,false)
             world.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS,false)
+            world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN,true)
             //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
             WorldEdit.setBarrier(
                 setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
