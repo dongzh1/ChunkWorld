@@ -1,7 +1,6 @@
 package com.dongzh1.chunkworld.command
 
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.WorldEdit
 import com.dongzh1.chunkworld.database.dao.ChunkDao
 import com.dongzh1.chunkworld.database.dao.PlayerDao
 import com.dongzh1.chunkworld.redis.RedisData

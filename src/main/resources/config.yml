@@ -1,6 +1,5 @@
 #如果你不知道数据库对应的配置，那么只需要改host,port,database,user,passwd即可
 Mysql:
-  Enable: true
   host: 127.0.0.1
   port: 3306
   database: ChunkWorld
@@ -15,7 +14,3 @@ redis:
   password: ""
 #每个服都应该有一个出生点，用作应急
 Location: "world,2.5,64.0,8.0,-90,0"
-LobbyServer: false
-serverName: "home"
-#此服每日重启时间,重启前会把玩家送到大厅,这个代表3点1分重启,资源世界固定每天晚上20点重置
-time: "3,0"
