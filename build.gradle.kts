@@ -13,7 +13,7 @@ version = "1.0.0"
 easylib {
     env {
         mainClassName = "com.dongzh1.chunkworld.ChunkWorld"
-        pluginName = "ChunkWorld"
+        pluginName = "ChunkWorldLobby"
         pluginUpdateInfo = "更新消息"
         kotlinVersion = "1.9.20"
     }
@@ -78,6 +78,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
     //compileOnly("org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT")
     compileOnly(fileTree("libs"))
+    implementation("com.xbaimiao:repository:1.0.5")
 }
 
 tasks {
