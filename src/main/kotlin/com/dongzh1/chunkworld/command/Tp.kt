@@ -2,29 +2,34 @@ package com.dongzh1.chunkworld.command
 
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.WorldEdit
-import com.dongzh1.chunkworld.database.dao.ChunkDao
-import com.dongzh1.chunkworld.database.dao.PlayerDao
-import com.dongzh1.chunkworld.redis.RedisData
+import com.dongzh1.chunkworld.database.dao.WorldInfo
+import com.dongzh1.chunkworld.listener.GroupListener
 import com.dongzh1.chunkworld.redis.RedisManager
 import com.dongzh1.chunkworld.redis.RedisPush
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
+import com.xbaimiao.easylib.task.EasyLibTask
 import com.xbaimiao.easylib.util.submit
 import net.kyori.adventure.util.TriState
 import org.bukkit.*
 import org.bukkit.entity.Player
+import org.bukkit.persistence.PersistentDataType
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.File
 import java.io.IOException
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.CompletableFuture
-import kotlin.math.abs
 import kotlin.random.Random
 
 object Tp {
+    private val worldInfoRedis = mutableMapOf<String, EasyLibTask>()
+    fun removeWorldInfo(worldName: String) {
+        worldInfoRedis[worldName]?.cancel()
+        worldInfoRedis.remove(worldName)
+    }
 
-    private fun connect(player: Player, server: String) {
+    fun connect(player: Player, server: String) {
         val byteArray = ByteArrayOutputStream()
         val out = DataOutputStream(byteArray)
         try {
@@ -36,286 +41,322 @@ object Tp {
         player.sendPluginMessage(ChunkWorld.inst, "BungeeCord", byteArray.toByteArray())
     }
 
-    private fun couldTp(p:Player, playerDao: PlayerDao):Pair<Boolean,String?>{
-        if (p.name == playerDao.name){return true to null}
-        val ship = RedisData.getFriendsAndBanner(p.uniqueId.toString()) ?: return false to "§c你的关系数据还未加载完毕，请稍后..."
-        val banners = ship.second
-        val friends = ship.first
-        if (banners.contains(playerDao.uuid.toString())){
-            //互相拉黑状态
-            return false to "§c目标世界和你处于拉黑状态,无法传送"
-        }
-        when(playerDao.worldStatus){
-            0.toByte() -> {}
-            1.toByte() -> {
-                //共享玩家才能进
-                if (!friends.contains(playerDao.uuid.toString())){
-                    return false to "§c目标世界只对共享玩家开放,无法传送"
+    /**
+     * 一般仅用于指令传送，被异步执行
+     */
+    fun teleportPlayerWorld(p: Player, targetName: String, state: Byte, serverName: String) {
+        val targetDao = ChunkWorld.db.getPlayerDao(targetName)!!
+        val worldName = "chunkworlds/world/${targetDao.uuid}"
+        //判断能否传送
+        if (p.name != targetName && !p.hasPermission("chunkworld.admin")) {
+            //不是自己世界，进行权限判断
+            when (state) {
+                2.toByte() -> {
+                    p.sendMessage("§c目标世界仅允许世界主人进入,无法传送")
+                    return
+                }
+
+                1.toByte() -> {
+                    val playerDao = ChunkWorld.db.getPlayerDao(p.name)!!
+                    if (!ChunkWorld.db.isTrust(playerDao.id, targetDao.id)) {
+                        //不是共享玩家，拉黑玩家肯定不是共享玩家
+                        p.sendMessage("§c目标世界只对共享玩家开放,无法传送")
+                        return
+                    }
+                }
+
+                0.toByte() -> {
+                    //拉黑不许进
+                    val playerDao = ChunkWorld.db.getPlayerDao(p.name)!!
+                    if (ChunkWorld.db.isBan(playerDao.id, targetDao.id)) {
+                        p.sendMessage("§c目标世界和你处于拉黑状态,无法传送")
+                        return
+                    }
                 }
             }
-            2.toByte() -> {
-                //关闭状态
-                return false to "§c目标世界仅允许世界主人进入,无法传送"
-            }
         }
-        return true to null
-    }
-
-    /**
-     * 把玩家传送到指定的世界的指定坐标
-     */
-    fun toPlayerWorld(p: Player, playerDao: PlayerDao){
-
-        //经过判断，不能去这个玩家世界
-        val result = couldTp(p,playerDao)
-        if (!result.first){
-            p.sendMessage(result.second!!)
+        if (serverName == ChunkWorld.serverName) {
+            //在本服
+            val world = Bukkit.getWorld(worldName)
+            if (world == null) {
+                p.sendMessage("§c目标世界主人已离线，世界已关闭")
+                return
+            }
+            submit { p.teleportAsync(world.spawnLocation) }
             return
         }
-        //确实世界是可以传送的，接下来世界方面有没有问题
-        //计时器，3秒后传送
-        var n = 0
-        //玩家禁止时的坐标
-        val stop = p.location
-        submit(delay = 1,period = 20, maxRunningNum = 4) {
-            //如果玩家移动了，取消传送,判断距离为0.1
-            if (abs(p.location.x - stop.x) > 0.1 || abs(p.location.y - stop.y) > 0.1 || abs(p.location.z - stop.z) > 0.1){
-                cancel()
-                p.sendMessage("§c你移动了,传送取消")
-                return@submit
+        //现在留下的都是可以传送的,发送消息想要传过去
+        RedisPush.teleportWorld(p.name, worldName, serverName).thenAccept {
+            if (it == null) {
+                p.sendMessage("§c链接超时,可能目标服务器正在重启，请联系管理员")
+            } else {
+                if (it == "true") connect(p, serverName)
+                else p.sendMessage("§c目标世界主人已离线，世界已关闭")
             }
-            if (n == 3) {
-                var world = Bukkit.getWorld(playerDao.tName)
-                if (world != null){
-                    //就在本服，直接传送
-                    p.sendMessage("§a已确定世界坐标,正在传送...")
-                    p.teleportAsync(Location(world,playerDao.tX,playerDao.tY,playerDao.tZ,playerDao.tYaw,playerDao.tPitch))
-                }else{
-                    p.sendMessage("§a正在确定世界坐标...")
-                    //不在本服。群组搜索
-                    RedisPush.teleportWorld(p.name,playerDao.tName,playerDao.tX,playerDao.tY,playerDao.tZ).thenAccept {
-                        if (it != null){
-                            p.sendMessage("§a已确定世界坐标,正在传送...")
-                            //世界找到了，传送过去
-                            connect(p,it)
-                        }else{
-                            //加载玩家世界，有playerDao，说明不是第一次创建
-                            val server = RedisManager.getHighestTpsServerName()
-                            if (server == null){
-                                p.sendMessage("§c没有可用服务器，请联系管理员")
-                                return@thenAccept
-                            }
-                            if (server == ChunkWorld.inst.config.getString("serverName")!!){
-                                //在本服加载
-                                val worldCreator = WorldCreator(playerDao.tName).keepSpawnLoaded(TriState.FALSE)
-                                world = worldCreator.createWorld()
-                                if (world != null){
-                                    //加载成功
-                                    p.sendMessage("§a已确定世界坐标,正在传送...")
-                                    p.teleportAsync(Location(world,playerDao.tX,playerDao.tY,playerDao.tZ,playerDao.tYaw,playerDao.tPitch))
-                                }else{
-                                    //加载失败
-                                    p.sendMessage("§c世界加载失败，请联系管理员")
-                                }
-                            }else{
-                                //其他服加载
-                                RedisPush.loadWorldTeleport(server,playerDao.tName,playerDao.tX,playerDao.tY,playerDao.tZ,p.name).thenAccept { success ->
-                                    if (success != null){
-                                        p.sendMessage("§a已确定世界坐标,正在传送...")
-                                        //跨服
-                                        connect(p,server)
-                                    }else{
-                                        //创建世界失败
-                                        p.sendMessage("§c世界加载失败，请联系管理员")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if(n < 3)
-                p.sendMessage("§a ${3-n} 秒后进行传送，请不要移动!")
-            n++
         }
     }
 
     /**
-     * 创建玩家世界并传送
-     * 这个方法只会被异步调用
+     * 此方法必定异步运行
+     * 如果有玩家世界文件，则加载，否则创建主世界，地狱也会加载，但是地狱的创建不在这里，会将重要信息写入世界存储
      */
-    fun createTp(p:Player){
-        launchCoroutine(SynchronizationContext.ASYNC) {
-            val serverName = RedisManager.getHighestTpsServerName()
-            if (serverName == null){
-                p.sendMessage("§c没有可用服务器，请联系管理员")
-                return@launchCoroutine
-            }
-            //复制世界
-            val file = File("chunkworlds/world/${p.uniqueId}")
+    fun createWorldLocal(playerUUID: UUID, name: String, id: Int, perm: Boolean): CompletableFuture<Boolean> {
+        //查询文件在不在，在的话说明不是第一次加载
+        val isFirst = !File("chunkworlds/world/$playerUUID/uid.dat").exists()
+        val hasNether = File("chunkworlds/nether/$playerUUID/uid.dat").exists()
+        val future = CompletableFuture<Boolean>()
+        //复制世界
+        if (isFirst) {
+            val file = File("chunkworlds/world/${playerUUID}")
             val templeFile = File(ChunkWorld.inst.dataFolder, "world")
-            //有level.dat_old文件说明是加载过的
-            if (File(file,"level.dat_old").exists()) {
-                 //此世界已被加载过
-                p.sendMessage("§c你的世界已被加载过，但没有数据，请联系管理员")
-                return@launchCoroutine
-            }
             try {
                 templeFile.copyRecursively(file)
-            }catch (ex:Exception) {
+            } catch (ex: Exception) {
                 //踢出玩家并提示联系管理员
-                p.sendMessage("§c你的世界创建失败，原因为复制失败，请尽快联系管理员")
-                error("${p.name}玩家的 chunkworlds/world/${p.uniqueId} 世界复制文件失败")
-            }
-            //复制完毕，加载世界
-            if (serverName == ChunkWorld.inst.config.getString("serverName")!!) {
-                createWorldLocal(p.uniqueId,p.name).thenAccept {
-                    if (it.first){
-                        //创建成功
-                        p.sendMessage("§a世界创建成功，正在传送...")
-                        val playerDao = it.second!!
-                        toPlayerWorld(p,playerDao)
-                    }else {
-                        //创建失败
-                        p.sendMessage("§c加载世界失败,请联系管理员,错误原因，创建失败")
-                    }
-                }
-            }else{
-
-                RedisPush.createWorld(serverName,p.uniqueId,p.name).thenAccept {
-                    if (it != null){
-                        //创建成功
-                        p.sendMessage("§a世界创建成功，正在传送...")
-                        connect(p,serverName)
-                    }else {
-                        //创建失败
-                        p.sendMessage("§c加载世界失败,请联系管理员,在${serverName}创建失败")
-                    }
-                }
+                future.apply { complete(false) }
+                return future
             }
         }
-    }
-    fun createWorldLocal(playerUUID: UUID,playerName:String):CompletableFuture<Pair<Boolean,PlayerDao?>>{
-        val future = CompletableFuture<Pair<Boolean,PlayerDao?>>()
-        launchCoroutine(SynchronizationContext.SYNC) {
+        //获取信任关系，离线时信任关系也可能发生改变
+        val trusts = ChunkWorld.db.getTrustNames(id)
+        val banners = ChunkWorld.db.getBanNames(id)
+        submit {
             //在本服创建
             val worldName = "chunkworlds/world/$playerUUID"
             val wc = WorldCreator(worldName).keepSpawnLoaded(TriState.FALSE)
             val world = wc.createWorld()
-            if (world == null){
-                future.apply { complete(false to null) }
-                return@launchCoroutine
+            if (world == null) {
+                future.apply { complete(false) }
+                return@submit
             }
             //设置世界规则等
             world.isAutoSave = true
-            world.setGameRule(GameRule.KEEP_INVENTORY,true)
-            world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS,0)
-            world.setGameRule(GameRule.DO_FIRE_TICK,false)
-            world.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS,false)
-            world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN,true)
-            //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
-            WorldEdit.setBarrier(
-                setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
-                world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,
-                world
+            if (isFirst) {
+                world.setGameRule(GameRule.KEEP_INVENTORY, true)
+                world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS, 0)
+                world.setGameRule(GameRule.DO_FIRE_TICK, false)
+                world.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS, false)
+                world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true)
+                //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
+                WorldEdit.setBarrier(
+                    setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
+                    world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,
+                    world
+                )
+                //存储一些重要信息
+                world.persistentDataContainer.set(
+                    NamespacedKey.fromString("chunkworld_chunks")!!,
+                    PersistentDataType.STRING, "${world.spawnLocation.chunk.x},${world.spawnLocation.chunk.z}|"
+                )
+                world.spawnLocation.chunk.persistentDataContainer.set(
+                    NamespacedKey.fromString("chunkworld_unlock")!!,
+                    PersistentDataType.BOOLEAN, true
+                )
+                world.persistentDataContainer.set(
+                    NamespacedKey.fromString("chunkworld_state")!!,
+                    PersistentDataType.BYTE, 2
+                )
+                world.persistentDataContainer.set(
+                    NamespacedKey.fromString("chunkworld_owner")!!,
+                    PersistentDataType.STRING, name
+                )
+            }
+            //存储信任玩家的name
+            val trustString = trusts.joinToString("|,;|")
+            val banString = banners.joinToString("|,;|")
+            world.persistentDataContainer.set(
+                NamespacedKey.fromString("chunkworld_trust")!!,
+                PersistentDataType.STRING,
+                trustString
             )
+            world.persistentDataContainer.set(
+                NamespacedKey.fromString("chunkworld_ban")!!,
+                PersistentDataType.STRING,
+                banString
+            )
+            //判明是否为要展示的世界
             //存储世界
             world.save()
-            SynchronizationContext.ASYNC
-            var playerDao = PlayerDao().apply {
-                name = playerName
-                uuid = playerUUID
-                createTime = java.text.SimpleDateFormat("yyyy年MM月dd日HH时mm分ss秒").format(java.util.Date(System.currentTimeMillis()))
-                spawn = "${world.spawnLocation.x},${world.spawnLocation.y},${world.spawnLocation.z},${world.spawnLocation.yaw},${world.spawnLocation.pitch}"
-                netherSpawn = "null"
-                worldStatus = 0
-                lastTime = System.currentTimeMillis()
-                teleport = "world,${world.spawnLocation.x},${world.spawnLocation.y},${world.spawnLocation.z},${world.spawnLocation.yaw},${world.spawnLocation.pitch}"
+            if (hasNether) {
+                //加载地狱。创建另有方法
+                val netherName = "chunkworlds/nether/$playerUUID"
+                val netherWc =
+                    WorldCreator(netherName).environment(World.Environment.NETHER).keepSpawnLoaded(TriState.FALSE)
+                val nether = netherWc.createWorld()
+                if (nether == null) {
+                    future.apply { complete(false) }
+                    return@submit
+                }
+                nether.isAutoSave = true
+                nether.save()
             }
-            //玩家数据存入数据库
-            ChunkWorld.db.playerCreate(playerDao)
-            //取出玩家数据，获取id
-            playerDao = ChunkWorld.db.playerGet(playerName)!!
-            //出生的区块也存入
-            val chunkDao = ChunkDao().apply {
-                playerID = playerDao.id
-                x = world.spawnLocation.chunk.x
-                z = world.spawnLocation.chunk.z
-                worldType = 0
+            //新建了世界数据，可以存入内存
+            val state = world.persistentDataContainer.get(
+                NamespacedKey.fromString("chunkworld_state")!!,
+                PersistentDataType.BYTE
+            )!!
+            val chunks = world.persistentDataContainer.get(
+                NamespacedKey.fromString("chunkworld_chunks")!!,
+                PersistentDataType.STRING
+            )!!.split("|").size - 1
+            var netherChunks = 0
+            if (hasNether) {
+                val nether = Bukkit.getWorld("chunkworlds/nether/$playerUUID")!!
+                netherChunks = nether.persistentDataContainer.get(
+                    NamespacedKey.fromString("chunkworld_chunks")!!,
+                    PersistentDataType.STRING
+                )!!.split("|").size - 1
             }
-            //区块数据存入数据库
-            ChunkWorld.db.chunkCreate(chunkDao)
-            //新建了玩家数据，可以存入内存
-            RedisData.setPlayerDao(playerDao)
-            RedisData.setChunks(playerUUID.toString(), listOf(chunkDao))
-            future.complete(true to playerDao)
+            val serverName = ChunkWorld.serverName
+            val worldInfo = WorldInfo(
+                state = state,
+                normalChunks = chunks,
+                netherChunks = netherChunks,
+                serverName = serverName,
+                showWorld = perm
+            )
+            RedisManager.setWorldInfo(name, worldInfo)
+            //定期发送消息告诉redis世界还在
+            val task = submit(async = true, delay = 20 * 60 * 30, period = 20 * 60 * 30) {
+                val worldNormal = Bukkit.getWorld("chunkworlds/world/$playerUUID")
+                val worldNether = Bukkit.getWorld("chunkworlds/nether/$playerUUID")
+                if (worldNormal == null && worldNether == null) {
+                    //删除数据会由velocity发起
+                    removeWorldInfo("chunkworlds/world/$playerUUID")
+                    return@submit
+                }
+                if (worldNormal != null) {
+                    RedisManager.setWorldInfo(name, getWorldInfo(worldNormal, worldNether, perm))
+                }
+            }
+            worldInfoRedis["chunkworlds/world/$playerUUID"] = task
+            world.getChunkAtAsync(world.spawnLocation)
+            GroupListener.addLocation(name, world.spawnLocation)
+            future.complete(true)
         }
         return future
     }
 
+    fun createNether(p: Player) {
+        val worldName = "chunkworlds/nether/${p.uniqueId}"
+        val wc = WorldCreator(worldName).environment(World.Environment.NETHER).keepSpawnLoaded(TriState.FALSE)
+        val world = wc.createWorld()
+        if (world == null) {
+            p.sendMessage("§c创建地狱失败")
+            return
+        }
+        world.isAutoSave = true
+        world.setGameRule(GameRule.KEEP_INVENTORY, true)
+        world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS, 0)
+        world.setGameRule(GameRule.DO_FIRE_TICK, false)
+        world.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS, false)
+        world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true)
+        WorldEdit.setBarrier(
+            setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
+            world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,
+            world
+        )
+        world.persistentDataContainer.set(
+            NamespacedKey.fromString("chunkworld_chunks")!!,
+            PersistentDataType.STRING, "${world.spawnLocation.chunk.x},${world.spawnLocation.chunk.z}|"
+        )
+        world.spawnLocation.chunk.persistentDataContainer.set(
+            NamespacedKey.fromString("chunkworld_unlock")!!,
+            PersistentDataType.BOOLEAN, true
+        )
+        world.save()
+        p.teleportAsync(world.spawnLocation)
+    }
 
-    fun randomTp(p:Player,world: World,range:Int){
-        p.sendMessage("")
-        val x = Random.nextInt(-range,range)
-        val z = Random.nextInt(-range,range)
+    private fun getWorldInfo(world: World, netherWorld: World?, perm: Boolean): WorldInfo {
+        val state =
+            world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_state")!!, PersistentDataType.BYTE)!!
+        val chunks = world.persistentDataContainer.get(
+            NamespacedKey.fromString("chunkworld_chunks")!!,
+            PersistentDataType.STRING
+        )!!.split("|").size - 1
+        var netherChunks = 0
+        val serverName = ChunkWorld.serverName
+        if (netherWorld != null) {
+            netherChunks = netherWorld.persistentDataContainer.get(
+                NamespacedKey.fromString("chunkworld_chunks")!!,
+                PersistentDataType.STRING
+            )!!.split("|").size - 1
+        }
+        return WorldInfo(
+            state = state,
+            normalChunks = chunks,
+            netherChunks = netherChunks,
+            serverName = serverName,
+            showWorld = perm
+        )
+    }
+
+
+    fun randomTp(p: Player, world: World, range: Int) {
+        val x = Random.nextInt(-range, range)
+        val z = Random.nextInt(-range, range)
         submit(async = true) {
             //异步获取对应的信息，主线程再传送和修改
-            when(world.environment){
+            when (world.environment) {
                 World.Environment.NETHER -> {
-                    var locY:Int = 121
+                    var locY: Int = 121
                     for (y in 120 downTo 32) {
-                        if (isSafeLocation(world,x,y,z)){
+                        if (isSafeLocation(world, x, y, z)) {
                             locY = y
                             break
                         }
                     }
                     if (locY == 121) locY = 64
                     submit {
-                        if (locY == 64 && !isSafeLocation(world,x,locY,z)){
-                            world.getBlockAt(x,locY,z).type = Material.NETHERRACK
-                            world.getBlockAt(x,locY+1,z).type = Material.AIR
-                            world.getBlockAt(x,locY+2,z).type = Material.AIR
+                        if (locY == 64 && !isSafeLocation(world, x, locY, z)) {
+                            world.getBlockAt(x, locY, z).type = Material.NETHERRACK
+                            world.getBlockAt(x, locY + 1, z).type = Material.AIR
+                            world.getBlockAt(x, locY + 2, z).type = Material.AIR
                         }
-                        p.teleportAsync(Location(world,x+0.5,locY+1.0,z+0.5))
+                        p.teleportAsync(Location(world, x + 0.5, locY + 1.0, z + 0.5))
                     }
                 }
+
                 World.Environment.THE_END -> {
-                    var locY:Int = 71
+                    var locY: Int = 71
                     for (y in 70 downTo 32) {
-                        if (isSafeLocation(world,x,y,z)){
+                        if (isSafeLocation(world, x, y, z)) {
                             locY = y
                             break
                         }
                     }
                     if (locY == 71) locY = 64
                     submit {
-                        if (locY == 64 && !isSafeLocation(world,x,locY,z)){
-                            world.getBlockAt(x,locY,z).type = Material.END_STONE
-                            world.getBlockAt(x,locY+1,z).type = Material.AIR
-                            world.getBlockAt(x,locY+2,z).type = Material.AIR
+                        if (locY == 64 && !isSafeLocation(world, x, locY, z)) {
+                            world.getBlockAt(x, locY, z).type = Material.END_STONE
+                            world.getBlockAt(x, locY + 1, z).type = Material.AIR
+                            world.getBlockAt(x, locY + 2, z).type = Material.AIR
                         }
-                        p.teleportAsync(Location(world,x+0.5,locY+1.0,z+0.5))
+                        p.teleportAsync(Location(world, x + 0.5, locY + 1.0, z + 0.5))
                     }
                 }
+
                 else -> {
                     //只考虑主世界了
-                    val y = world.getHighestBlockYAt(x,z)
+                    val y = world.getHighestBlockYAt(x, z)
                     submit {
-                        if (!isSafeLocation(world,x,y,z)){
-                            world.getBlockAt(x,y,z).type = Material.STONE
-                            world.getBlockAt(x,y+1,z).type = Material.AIR
-                            world.getBlockAt(x,y+2,z).type = Material.AIR
+                        if (!isSafeLocation(world, x, y, z)) {
+                            world.getBlockAt(x, y, z).type = Material.STONE
+                            world.getBlockAt(x, y + 1, z).type = Material.AIR
+                            world.getBlockAt(x, y + 2, z).type = Material.AIR
                         }
-                        p.teleportAsync(Location(world,x+0.5,y+1.0,z+0.5))
+                        p.teleportAsync(Location(world, x + 0.5, y + 1.0, z + 0.5))
                     }
                 }
             }
         }
 
     }
+
     private fun isSafeLocation(world: World, x: Int, y: Int, z: Int): Boolean {
         val block = world.getBlockAt(x, y, z).type
-        val blockAbove = world.getBlockAt(x, y+1, z).type
+        val blockAbove = world.getBlockAt(x, y + 1, z).type
         val blockAbove2 = world.getBlockAt(x, y + 2, z).type
 
         // 检查传送位置是否安全（例如，方块下方是固体，上方是空气）

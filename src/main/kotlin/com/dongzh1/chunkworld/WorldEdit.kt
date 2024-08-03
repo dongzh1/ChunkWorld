@@ -1,5 +1,7 @@
 package com.dongzh1.chunkworld
 
+import com.dongzh1.chunkworld.basic.Baoxiang
+import com.dongzh1.chunkworld.basic.Item
 import com.fastasyncworldedit.core.util.TaskManager
 import com.sk89q.worldedit.EditSession
 import com.sk89q.worldedit.WorldEdit
@@ -95,17 +97,18 @@ object WorldEdit {
      * @param chunk 区块
      * @param targetChunk 目标区块
      */
-    fun copyChunk(chunk: Chunk, targetChunk: Chunk, p: Player? = null) {
+    fun copyChunk(chunk: Chunk, targetChunk: Chunk, p: Player) {
         TaskManager.taskManager().async {
             copy(chunk, targetChunk)
             //生成宝藏
+            addItems(chunk, p)
         }
     }
 
     private fun copy(chunk: Chunk, targetChunk: Chunk) {
         val weWorld = BukkitAdapter.adapt(chunk.world)
 
-        if (chunk.world.environment == World.Environment.NORMAL){
+        if (chunk.world.environment == World.Environment.NORMAL) {
             val region = CuboidRegion(
                 weWorld,
                 BlockVector3.at(chunk.x * 16, -64, chunk.z * 16),
@@ -120,7 +123,7 @@ object WorldEdit {
                 true,
                 null
             )
-        }else{
+        } else {
             val region = CuboidRegion(
                 weWorld,
                 BlockVector3.at(chunk.x * 16, 0, chunk.z * 16),
@@ -146,8 +149,9 @@ object WorldEdit {
     fun copyChunkBiome(chunk: Chunk, targetChunk: Chunk) {
         TaskManager.taskManager().async {
             copy(chunk, targetChunk)
-            if (chunk.world.environment == World.Environment.NORMAL){
-                val pos1 = Location(targetChunk.world, targetChunk.x * 16.toDouble(), -64.0, targetChunk.z * 16.toDouble())
+            if (chunk.world.environment == World.Environment.NORMAL) {
+                val pos1 =
+                    Location(targetChunk.world, targetChunk.x * 16.toDouble(), -64.0, targetChunk.z * 16.toDouble())
                 val pos2 = Location(
                     targetChunk.world,
                     targetChunk.x * 16.toDouble() + 15,
@@ -155,8 +159,9 @@ object WorldEdit {
                     targetChunk.z * 16.toDouble() + 15
                 )
                 setBlock(pos1, pos2, BlockTypes.AIR!!)
-            }else{
-                val pos1 = Location(targetChunk.world, targetChunk.x * 16.toDouble(), 0.0, targetChunk.z * 16.toDouble())
+            } else {
+                val pos1 =
+                    Location(targetChunk.world, targetChunk.x * 16.toDouble(), 0.0, targetChunk.z * 16.toDouble())
                 val pos2 = Location(
                     targetChunk.world,
                     targetChunk.x * 16.toDouble() + 15,
@@ -231,11 +236,11 @@ object WorldEdit {
     fun setBarrier(chunkList: Set<Pair<Int, Int>>, chunk: Pair<Int, Int>, world: World) {
         val pos1: Location
         val pos2: Location
-        if (world.environment == World.Environment.NORMAL){
+        if (world.environment == World.Environment.NORMAL) {
             //获取设置区块的两角坐标
             pos1 = Location(world, chunk.first * 16.toDouble(), -64.0, chunk.second * 16.toDouble())
             pos2 = Location(world, chunk.first * 16.toDouble() + 15, 319.0, chunk.second * 16.toDouble() + 15)
-        }else{
+        } else {
             pos1 = Location(world, chunk.first * 16.toDouble(), 0.0, chunk.second * 16.toDouble())
             pos2 = Location(world, chunk.first * 16.toDouble() + 15, 128.0, chunk.second * 16.toDouble() + 15)
         }
@@ -276,8 +281,24 @@ object WorldEdit {
 
     }
 
-
-    private fun chooseMaterial() {
-
+    private fun addItems(chunk: Chunk, p: Player) {
+        submit {
+            val block = chunk.getBlock(Random.nextInt(0, 16), Random.nextInt(-60, -1), Random.nextInt(0, 16))
+            block.type = Material.BARREL
+            val state = block.state as Container
+            for (i in 0..Random.nextInt(1, 6)) {
+                state.inventory.addItem(Item.netherItem(p))
+            }
+            for (i in 0..Random.nextInt(1, 4)) {
+                state.inventory.addItem(Item.endItem(p))
+            }
+            for (i in 0..Random.nextInt(1, 20)) {
+                val item = buildItem(
+                    Baoxiang.entries.toTypedArray().random().material,
+                    builder = { amount = Random.nextInt(1, 16) })
+                state.inventory.addItem(item)
+            }
+            Bukkit.getConsoleSender().sendMessage("某人的区块拓展了，宝箱位置在 ${block.location}")
+        }
     }
 }
