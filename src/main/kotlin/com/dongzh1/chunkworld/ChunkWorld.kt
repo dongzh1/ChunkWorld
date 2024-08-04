@@ -81,6 +81,7 @@ class ChunkWorld : EasyPlugin() {
         registerListener(GroupListener)
         //注册指令
         registerCommand(GroupCommand)
+        Papi.register()
     }
 
 

@@ -26,7 +26,16 @@ class ServerGui(private val p: Player) {
         if (worldInfo != null) {
             p.sendMessage("§c您的独立世界尚未完整保存,无法切换服务器加载世界")
             p.sendMessage("§c准备将您再次传送到服务器:${worldInfo.serverName}")
-            Tp.toSelfWorld(p, worldInfo.serverName, playerDao.id)
+            GroupListener.addServerMap(p, worldInfo.serverName, playerDao.id)
+            val zip = ChunkWorld.inst.config.getString("resource")!!
+            val url = repoClient.createPresignedUrl(zip, p.uniqueId).downloadUrl
+            val hash = ChunkWorld.inst.config.getByteList("hash").toByteArray()
+            p.setResourcePack(
+                url,
+                hash,
+                Component.text("§a请您选择接受资源包以进入像素物语").appendNewline()
+                    .append(Component.text("§f只有接受资源包才能进行完整体验"))
+            )
             return
         }
         val basic = PaperBasic(p, Component.text("§f服务器选择"))
@@ -81,7 +90,7 @@ class ServerGui(private val p: Player) {
             val serverInfo = serverList[i]
             if (i >= slots.size) break
             basic.set(slots[i], buildItem(Material.BEDROCK, builder = {
-                name = "§f${serverInfo.first}"
+                name = "§7${serverInfo.first}"
                 lore.add("§f在线人数: ${serverInfo.second}/20")
                 lore.add("§f点击传送")
             }))
