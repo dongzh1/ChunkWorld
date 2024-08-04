@@ -7,12 +7,9 @@ import com.dongzh1.chunkworld.listener.GroupListener
 import com.dongzh1.chunkworld.redis.RedisManager
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.buildItem
-import com.xbaimiao.easylib.util.submit
-import net.kyori.adventure.resource.ResourcePackStatus
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.player.PlayerResourcePackStatusEvent
 
 class ServerGui(private val p: Player) {
     fun build() {
@@ -94,10 +91,12 @@ class ServerGui(private val p: Player) {
                 val zip = ChunkWorld.inst.config.getString("resource")!!
                 val url = repoClient.createPresignedUrl(zip, p.uniqueId).downloadUrl
                 val hash = ChunkWorld.inst.config.getByteList("hash").toByteArray()
-                p.setResourcePack(url,
+                p.setResourcePack(
+                    url,
                     hash,
                     Component.text("§a请您选择接受资源包以进入像素物语").appendNewline()
-                        .append(Component.text("§f只有接受资源包才能进行完整体验")))
+                        .append(Component.text("§f只有接受资源包才能进行完整体验"))
+                )
 
             }
         }

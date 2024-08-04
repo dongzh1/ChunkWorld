@@ -7,18 +7,15 @@ import com.dongzh1.chunkworld.basic.ServerGui
 import com.xbaimiao.easylib.command.command
 import com.xbaimiao.easylib.util.CommandBody
 import com.xbaimiao.easylib.util.ECommandHeader
-import com.xbaimiao.repository.repositoryClient
 import net.kyori.adventure.text.Component
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import org.bukkit.event.player.PlayerResourcePackStatusEvent
 import java.io.File
 import java.io.FileInputStream
 import java.security.MessageDigest
 
 @ECommandHeader(command = "chunkworld")
 object GroupCommand {
-
 
 
     @CommandBody
@@ -28,6 +25,7 @@ object GroupCommand {
             ServerGui(sender).build()
         }
     }
+
     @CommandBody
     private val upload = command<CommandSender>("upload") {
         description = "上传youwan1的材质包，默认ia材质路径"
@@ -52,18 +50,22 @@ object GroupCommand {
             }
         }
     }
+
     @CommandBody
-    private val test = command<Player>("test"){
+    private val test = command<Player>("test") {
         description = "测试"
         exec {
             val zip = ChunkWorld.inst.config.getString("resource")!!
             val url = repoClient.createPresignedUrl(zip, sender.uniqueId).downloadUrl
-            sender.setResourcePack(url,
+            sender.setResourcePack(
+                url,
                 null,
                 Component.text("§a请您选择接受资源包以进入像素物语").appendNewline()
-                    .append(Component.text("§f只有接受资源包才能进行完整体验")))
+                    .append(Component.text("§f只有接受资源包才能进行完整体验"))
+            )
         }
     }
+
     private fun calculateHash(file: File): ByteArray {
         val buffer = ByteArray(1024)
         val sha1 = MessageDigest.getInstance("SHA-1")
