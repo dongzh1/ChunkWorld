@@ -24,7 +24,7 @@ class PlayerGui(private val p: Player, private val banPage: Int) {
         }))
         basic.onClick(8) { p.closeInventory() }
         basic.set(17, buildItem(Material.PAPER, builder = {
-            customModelData = 300008
+            customModelData = 300010
             name = "§f빪 §x§1§9§c§a§a§d➠ 返回上级菜单"
         }))
         basic.onClick(17) {

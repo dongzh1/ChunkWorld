@@ -175,7 +175,7 @@ class ListGui(private val p: Player) {
     }
 
     private fun build(): PaperBasic {
-        val basic = PaperBasic(p, Component.text("§f%img_offset_-8%빨".replacePlaceholder(p)))
+        val basic = PaperBasic(p, Component.text("§f世界列表"))
         basic.rows(6)
         basic.onClick { it.isCancelled = true }
         basic.set(8, buildItem(Material.PAPER, builder = {
@@ -184,7 +184,7 @@ class ListGui(private val p: Player) {
         }))
         basic.onClick(8) { p.closeInventory() }
         basic.set(17, buildItem(Material.PAPER, builder = {
-            customModelData = 300008
+            customModelData = 300010
             name = "§f빪 §x§1§9§c§a§a§d➠ 返回上级菜单"
         }))
         basic.onClick(17) {

@@ -3,6 +3,7 @@ package com.dongzh1.chunkworld.redis
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.command.Tp
 import com.dongzh1.chunkworld.listener.GroupListener
+import com.xbaimiao.easylib.util.submit
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.NamespacedKey
@@ -108,21 +109,23 @@ class RedisListener : JedisPubSub() {
                     val serverName = mList[2]
                     val name = mList[3]
                     if (ChunkWorld.serverName == serverName) {
-                        val uuidString = mList[1]
-                        val worldNromal = Bukkit.getWorld("chunkworlds/world/$uuidString")
-                        var unloadNormal = false
-                        var unloadNether = false
-                        val worldNether = Bukkit.getWorld("chunkworlds/nether/$uuidString")
-                        if (worldNether != null) {
-                            if (unloadWorld(worldNether)) unloadNether = true
-                        } else unloadNether = true
-                        if (worldNromal != null) {
-                            if (unloadWorld(worldNromal)) unloadNormal = true
-                        } else unloadNormal = true
-                        if (unloadNormal && unloadNether) {
-                            //删除redis数据
-                            Tp.removeWorldInfo("chunkworlds/world/$uuidString")
-                            RedisManager.removeWorldInfo(name)
+                        submit {
+                            val uuidString = mList[1]
+                            val worldNromal = Bukkit.getWorld("chunkworlds/world/$uuidString")
+                            var unloadNormal = false
+                            var unloadNether = false
+                            val worldNether = Bukkit.getWorld("chunkworlds/nether/$uuidString")
+                            if (worldNether != null) {
+                                if (unloadWorld(worldNether)) unloadNether = true
+                            } else unloadNether = true
+                            if (worldNromal != null) {
+                                if (unloadWorld(worldNromal)) unloadNormal = true
+                            } else unloadNormal = true
+                            if (unloadNormal && unloadNether) {
+                                //删除redis数据
+                                Tp.removeWorldInfo("chunkworlds/world/$uuidString")
+                                RedisManager.removeWorldInfo(name)
+                            }
                         }
                     }
                 }
@@ -135,7 +138,8 @@ class RedisListener : JedisPubSub() {
         GroupListener.addUnloadWorld(world)
         if (world.players.isNotEmpty()) {
             world.players.forEach {
-                it.teleport(ChunkWorld.spawnLocation)
+                 it.teleport(ChunkWorld.spawnLocation)
+                if (it.uniqueId.toString() != world.name.split("/").last())
                 it.sendMessage("§c世界主人已离线，世界关闭")
             }
         }
