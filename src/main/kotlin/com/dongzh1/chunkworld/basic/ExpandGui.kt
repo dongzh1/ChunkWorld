@@ -19,7 +19,7 @@ import java.time.Duration
 class ExpandGui(private val p: Player, private val chunk: Chunk) {
     private var choose = 0
     private var canClose = false
-    private val worldisNormal = if (chunk.world.environment == World.Environment.NORMAL) true else false
+    private val worldisNormal = chunk.world.environment == World.Environment.NORMAL
     private val item30t = buildItem(Material.LIME_CONCRETE, builder = {
         name = "§a确认生成"
         lore.add("§a生成的区块将会有宝箱")

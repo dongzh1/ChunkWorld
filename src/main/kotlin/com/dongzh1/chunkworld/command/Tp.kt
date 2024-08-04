@@ -101,34 +101,36 @@ object Tp {
      * 如果有玩家世界文件，则加载，否则创建主世界，地狱也会加载，但是地狱的创建不在这里，会将重要信息写入世界存储
      */
     fun createWorldLocal(playerUUID: UUID, name: String, id: Int, perm: Boolean): CompletableFuture<Boolean> {
-        //查询文件在不在，在的话说明不是第一次加载
-        val isFirst = !File("chunkworlds/world/$playerUUID/uid.dat").exists()
-        val hasNether = File("chunkworlds/nether/$playerUUID/uid.dat").exists()
         val future = CompletableFuture<Boolean>()
-        //复制世界
-        if (isFirst) {
-            val file = File("chunkworlds/world/${playerUUID}")
-            val templeFile = File(ChunkWorld.inst.dataFolder, "world")
-            try {
-                templeFile.copyRecursively(file)
-            } catch (ex: Exception) {
-                //踢出玩家并提示联系管理员
-                future.apply { complete(false) }
-                return future
+        launchCoroutine(SynchronizationContext.ASYNC) {
+            //查询文件在不在，在的话说明不是第一次加载
+            val isFirst = !File("chunkworlds/world/$playerUUID/uid.dat").exists()
+            val hasNether = File("chunkworlds/nether/$playerUUID/uid.dat").exists()
+            //复制世界
+            if (isFirst) {
+                val file = File("chunkworlds/world/${playerUUID}")
+                val templeFile = File(ChunkWorld.inst.dataFolder, "world")
+                try {
+                    templeFile.copyRecursively(file)
+                } catch (ex: Exception) {
+                    //踢出玩家并提示联系管理员
+                    future.apply { complete(false) }
+                    return@launchCoroutine
+                }
             }
-        }
-        //获取信任关系，离线时信任关系也可能发生改变
-        val trusts = ChunkWorld.db.getTrustNames(id)
-        val banners = ChunkWorld.db.getBanNames(id)
-        submit {
-            //在本服创建
+            //获取信任关系，离线时信任关系也可能发生改变
+            val trusts = ChunkWorld.db.getTrustNames(id)
+            val banners = ChunkWorld.db.getBanNames(id)
+
             val worldName = "chunkworlds/world/$playerUUID"
             val wc = WorldCreator(worldName).keepSpawnLoaded(TriState.FALSE)
+            switchContext(SynchronizationContext.SYNC)
             val world = wc.createWorld()
             if (world == null) {
                 future.apply { complete(false) }
-                return@submit
+                return@launchCoroutine
             }
+            switchContext(SynchronizationContext.ASYNC)
             //设置世界规则等
             world.isAutoSave = true
             if (isFirst) {
@@ -138,11 +140,13 @@ object Tp {
                 world.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS, false)
                 world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true)
                 //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
+                switchContext(SynchronizationContext.SYNC)
                 WorldEdit.setBarrier(
                     setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
                     world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,
                     world
                 )
+                switchContext(SynchronizationContext.ASYNC)
                 //存储一些重要信息
                 world.persistentDataContainer.set(
                     NamespacedKey.fromString("chunkworld_chunks")!!,
@@ -174,18 +178,20 @@ object Tp {
                 PersistentDataType.STRING,
                 banString
             )
-            //判明是否为要展示的世界
             //存储世界
+            switchContext(SynchronizationContext.SYNC)
             world.save()
+            switchContext(SynchronizationContext.ASYNC)
             if (hasNether) {
                 //加载地狱。创建另有方法
                 val netherName = "chunkworlds/nether/$playerUUID"
                 val netherWc =
                     WorldCreator(netherName).environment(World.Environment.NETHER).keepSpawnLoaded(TriState.FALSE)
+                switchContext(SynchronizationContext.SYNC)
                 val nether = netherWc.createWorld()
                 if (nether == null) {
                     future.apply { complete(false) }
-                    return@submit
+                    return@launchCoroutine
                 }
                 nether.isAutoSave = true
                 nether.save()

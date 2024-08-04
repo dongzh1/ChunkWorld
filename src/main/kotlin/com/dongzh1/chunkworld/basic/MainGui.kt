@@ -117,5 +117,6 @@ class MainGui(private val p: Player) {
         basic.onClick(50) {
             Tp.connect(p, "lobby")
         }
+        basic.openAsync()
     }
 }
