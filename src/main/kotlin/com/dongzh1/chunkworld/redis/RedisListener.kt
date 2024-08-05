@@ -123,8 +123,7 @@ class RedisListener : JedisPubSub() {
                             } else unloadNormal = true
                             if (unloadNormal && unloadNether) {
                                 //删除redis数据
-                                Tp.removeWorldInfo("chunkworlds/world/$uuidString")
-                                RedisManager.removeWorldInfo(name)
+                                Tp.removeWorldInfo(name)
                             }
                         }
                     }

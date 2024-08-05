@@ -28,7 +28,11 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
         basic.onClick { event ->
             event.isCancelled = true
         }
-        basic.set(13, buildItem(Material.valueOf(ChunkWorld.inst.config.getString("item.material")!!), builder = {
+        basic.set(13, buildItem(Material.PAPER, builder = {
+            customModelData = if (chunk.world.environment == World.Environment.NORMAL)
+                300008
+            else
+                300009
             amount = chunkLevel
             name = "§3生成区块详情"
             lore.add("§f距离出生区块越远的区块等级越高")

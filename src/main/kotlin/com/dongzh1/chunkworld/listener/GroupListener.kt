@@ -2,12 +2,12 @@ package com.dongzh1.chunkworld.listener
 
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.WorldEdit
-import com.dongzh1.chunkworld.basic.ConfirmExpandGui
-import com.dongzh1.chunkworld.basic.Item
-import com.dongzh1.chunkworld.basic.PassportGui
+import com.dongzh1.chunkworld.basic.*
 import com.dongzh1.chunkworld.command.Tp
 import com.xbaimiao.easylib.util.hasLore
 import com.xbaimiao.easylib.util.submit
+import com.xbaimiao.invsync.api.events.PlayerDataSyncDoneEvent
+import io.papermc.paper.event.player.PlayerInventorySlotChangeEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.title.Title
 import org.bukkit.*
@@ -22,6 +22,8 @@ import org.bukkit.event.block.BlockFromToEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.*
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
+import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.player.*
 import org.bukkit.event.vehicle.VehicleDamageEvent
 import org.bukkit.event.world.ChunkPopulateEvent
@@ -52,11 +54,11 @@ object GroupListener : Listener {
 
     private val respawn = mutableMapOf<Player, Location>()
     private fun isInTrustedWorld(player: Player): Boolean {
-        if (player.world.name == "chunkworlds/world/${player.uniqueId}" || player.world.name == "chunkworlds/world/${player.uniqueId}") return true
-        val world = if (player.world.name.contains("/nether")) Bukkit.getWorld(
+        if (player.world.name == "chunkworlds/world/${player.uniqueId}" || player.world.name == "chunkworlds/nether/${player.uniqueId}") return true
+        val world = if (player.world.name.contains("/nether/")) Bukkit.getWorld(
             player.world.name.replace(
-                "nether",
-                "world"
+                "/nether/",
+                "/world/"
             )
         )!! else player.world
         val trusts = world.persistentDataContainer.get(
@@ -68,7 +70,8 @@ object GroupListener : Listener {
 
     private fun isBeTrust(player: Player, world: World): Boolean {
         val world1 =
-            if (world.name.contains("/nether")) Bukkit.getWorld(world.name.replace("nether", "world"))!! else world
+            if (world.name.contains("/nether/")) Bukkit.getWorld(world.name.replace
+                ("/nether/", "/world/"))!! else world
         val trustList = world1.persistentDataContainer.get(
             NamespacedKey.fromString("chunkworld_trust")!!,
             PersistentDataType.STRING
@@ -78,7 +81,8 @@ object GroupListener : Listener {
 
     private fun isBeBan(player: Player, world: World): Boolean {
         val world1 =
-            if (world.name.contains("/nether")) Bukkit.getWorld(world.name.replace("nether", "world"))!! else world
+            if (world.name.contains("/nether/")) Bukkit.getWorld(world.name.replace
+                ("/nether/", "/world/"))!! else world
         val banList = world1.persistentDataContainer.get(
             NamespacedKey.fromString("chunkworld_ban")!!,
             PersistentDataType.STRING
@@ -86,7 +90,7 @@ object GroupListener : Listener {
         return banList.contains(player.name)
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.HIGHEST)
     fun onSpawn(e: PlayerSpawnLocationEvent) {
         e.spawnLocation = getLocation(e.player.name) ?: ChunkWorld.spawnLocation
         if (!e.spawnLocation.isWorldLoaded) e.spawnLocation = ChunkWorld.spawnLocation
@@ -97,9 +101,65 @@ object GroupListener : Listener {
         if (e.entityType != EntityType.TNT) e.isCancelled = true
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     fun onJoin(e: PlayerJoinEvent) {
         e.joinMessage(null)
+        val p = e.player
+        val world = p.world
+        if (world.name == "world"){
+            p.gameMode = GameMode.ADVENTURE
+            return
+        }
+        if (!world.name.startsWith("chunkworlds/")){
+            p.gameMode = GameMode.SURVIVAL
+            return
+        }
+        if (isInTrustedWorld(e.player)){
+            p.gameMode = GameMode.SURVIVAL
+        }else{
+            p.gameMode = GameMode.ADVENTURE
+        }
+    }
+    @EventHandler
+    fun invSyncDone(e:PlayerDataSyncDoneEvent){
+        val p = e.player
+        val item8 = p.inventory.getItem(8)
+        if (item8 == null){
+            p.inventory.setItem(8,Item.menuItem)
+        }else{
+            if (item8 != Item.menuItem){
+                p.inventory.setItem(8,Item.menuItem)
+                p.world.dropItem(p.location,item8)
+            }
+        }
+    }
+    @EventHandler
+    fun drop(e:PlayerDropItemEvent){
+        if (e.itemDrop.itemStack == Item.menuItem){
+            e.isCancelled = true
+        }
+    }
+    @EventHandler
+    fun click(e:InventoryClickEvent){
+        if (e.currentItem == Item.menuItem){
+            e.isCancelled = true
+        }
+        if (e.cursor == Item.menuItem){
+            e.isCancelled = true
+        }
+    }
+    @EventHandler
+    fun drag(e:InventoryDragEvent){
+        if (e.oldCursor == Item.menuItem){
+            e.isCancelled = true
+        }
+        if (e.cursor == Item.menuItem){
+            e.isCancelled = true
+        }
+        if (e.newItems.values.contains(Item.menuItem)){
+            e.isCancelled = true
+        }
+
     }
 
     @EventHandler
@@ -204,6 +264,11 @@ object GroupListener : Listener {
 
     @EventHandler
     fun onInteract(e: PlayerInteractEvent) {
+        if (e.item == Item.menuItem) {
+            e.isCancelled = true
+            MainGui(e.player).build()
+            return
+        }
 
         //地狱邀请函和末地邀请函
         if (e.item?.hasLore("§f一次性门票") == true) {
@@ -459,6 +524,7 @@ object GroupListener : Listener {
      */
     @EventHandler
     fun portal(e: EntityPortalEnterEvent) {
+        if (e.entity is Player) return
         e.isCancelled = true
     }
 
@@ -466,6 +532,10 @@ object GroupListener : Listener {
     fun playerPortal(e: PlayerPortalEvent) {
         e.isCancelled = true
         val p = e.player
+        if (p.world.name == "world") {
+            p.performCommand("chunkworld tp")
+            return
+        }
         if (!p.world.name.startsWith("chunkworlds/")) {
             p.showTitle(
                 Title.title(
@@ -474,16 +544,15 @@ object GroupListener : Listener {
                 )
             )
         }
-        val nether = Bukkit.getWorld(p.world.name.replace("world", "nether"))
-        if (nether != null) {
-            p.teleportAsync(nether.spawnLocation)
-        } else {
-            if (p.world.name == "chunkworlds/world/${p.uniqueId}") {
+        if (p.world.name == "chunkworlds/world/${p.uniqueId}"){
+            val nether = Bukkit.getWorld(p.world.name.replace("/world/", "/nether/"))
+            if (nether != null) {
+                p.teleportAsync(nether.spawnLocation)
+            } else {
                 if ((p.world.persistentDataContainer.get(
                         NamespacedKey.fromString("chunkworld_chunks")!!,
                         PersistentDataType.STRING
-                    )!!.split("|").size - 1) >= 50
-                ) {
+                )!!.split("|").size - 1) >= 50) {
                     //创建地狱
                     p.showTitle(
                         Title.title(
@@ -500,16 +569,29 @@ object GroupListener : Listener {
                         )
                     )
                 }
-            } else {
-                //别人家
-                p.showTitle(
+
+            }
+        }else if (p.world.name == "chunkworlds/nether/${p.uniqueId}"){
+            val world = Bukkit.getWorld(p.world.name.replace("/nether/", "/world/"))!!
+            p.teleportAsync(world.spawnLocation)
+        } else {
+            if (p.world.environment == World.Environment.NORMAL){
+                val world = Bukkit.getWorld(p.world.name.replace("/world/","/nether/"))
+                if (world != null) p.teleportAsync(world.spawnLocation)
+                else p.showTitle(
                     Title.title(
                         Component.text("§d地狱未解锁"), Component.text("§f此世界还没解锁地狱呢"),
                         Title.Times.times(Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(1))
                     )
                 )
+            }else{
+                val world = Bukkit.getWorld(p.world.name.replace("/nether/","/world/"))!!
+                p.teleportAsync(world.spawnLocation)
             }
+            //别人家
+
         }
+
     }
 
     /**
@@ -541,33 +623,5 @@ object GroupListener : Listener {
         //出生在自己世界
         //val dao = RedisData.getPlayerDao(e.player.uniqueId.toString())
 
-    }
-
-    /**
-     * 加载区块的时候添加宝箱物品
-     */
-    @EventHandler
-    fun onChunkLoad(event: ChunkPopulateEvent) {
-        val chunk = event.chunk
-        submit(async = true) {
-            for (x in 0..15) {
-                for (z in 0..15) {
-                    for (y in chunk.world.minHeight until chunk.world.maxHeight) {
-                        val block = chunk.getBlock(x, y, z)
-                        if (block.type == Material.CHEST) {
-                            submit {
-                                val chest = block.state as Chest
-                                if (Random().nextInt(20) > 18) {
-                                    chest.inventory.addItem(Item.endItem())
-                                }
-                                if (Random().nextInt(20) > 18) {
-                                    chest.inventory.addItem(Item.netherItem())
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }

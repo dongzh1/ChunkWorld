@@ -9,6 +9,8 @@ folia-supported: false
 update-info: # inject
 depend-list: # inject
 depend: [ WorldEdit ]
+softdepend:
+  - InvSync
 relocate: # inject
 kotlin-version: # inject
 #world用于大厅，新建一个世界和地狱末地相连成资源

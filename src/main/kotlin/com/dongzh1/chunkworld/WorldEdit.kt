@@ -101,7 +101,7 @@ object WorldEdit {
         TaskManager.taskManager().async {
             copy(chunk, targetChunk)
             //生成宝藏
-            addItems(chunk, p)
+            if (chunk.world.environment == World.Environment.NORMAL) addItems(chunk, p)
         }
     }
 
@@ -242,7 +242,7 @@ object WorldEdit {
             pos2 = Location(world, chunk.first * 16.toDouble() + 15, 319.0, chunk.second * 16.toDouble() + 15)
         } else {
             pos1 = Location(world, chunk.first * 16.toDouble(), 0.0, chunk.second * 16.toDouble())
-            pos2 = Location(world, chunk.first * 16.toDouble() + 15, 128.0, chunk.second * 16.toDouble() + 15)
+            pos2 = Location(world, chunk.first * 16.toDouble() + 15, 255.0, chunk.second * 16.toDouble() + 15)
         }
         //获取围绕区块的四面
         val barrierRegions = mutableListOf(

@@ -66,14 +66,17 @@ class ServerGui(private val p: Player) {
         for (i in serverList.indices) {
             val serverInfo = serverList[i]
             basic.set(slots[i], buildItem(Material.BEDROCK, builder = {
-                name = "§f${serverInfo.first}"
-                lore.add("§f在线人数: ${serverInfo.second}")
+                name = "§f服务器:§7${serverInfo.serverName}"
+                lore.add("§f在线人数: ${serverInfo.serverplayers}")
+                lore.add("§f服务器tps: ${serverInfo.serverTps}")
+                lore.add("§f建议选择tps最高的服务器")
                 lore.add("§f点击传送")
             }))
             basic.onClick(slots[i]) {
                 p.closeInventory()
-                Tp.connect(p, serverInfo.first)
+                Tp.connect(p, serverInfo.serverName)
             }
         }
+        basic.openAsync()
     }
 }

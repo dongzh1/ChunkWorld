@@ -1,7 +1,8 @@
 package com.dongzh1.chunkworld
 
 import com.xbaimiao.easylib.bridge.PlaceholderExpansion
-import org.bukkit.entity.Player
+import org.bukkit.OfflinePlayer
+import kotlin.math.abs
 
 object Papi: PlaceholderExpansion() {
     private val sizeMap = mapOf(
@@ -14,11 +15,14 @@ object Papi: PlaceholderExpansion() {
     override val version: String
         get() = "1.0.0"
 
-    override fun onPlaceholderRequest(p: Player, params: String): String? {
+    override fun onRequest(p: OfflinePlayer, params: String): String? {
         if (params.startsWith("offset_")) {
             val size = try {
                 params.split("_")[1].toInt()
             } catch (e: Exception) {
+                return null
+            }
+            if (size < -2048 || size > 2048) {
                 return null
             }
             return getSizeString(size)
@@ -27,16 +31,13 @@ object Papi: PlaceholderExpansion() {
     }
 
     private fun getSizeString(size: Int): String {
-        val result = StringBuilder()
-        var remainingSize = size
-        val sortedKeys = if (size > 0) sizeMap.keys.sortedDescending() else sizeMap.keys.sorted()
-
-        for (key in sortedKeys) {
-            while (remainingSize >= key) {
-                result.append(sizeMap[key])
-                remainingSize -= key
+        for (key in sizeMap.keys) {
+            if (size == key) {
+                return sizeMap[key]!!
             }
         }
-        return result.toString()
+        //如果都没有就获取最近的
+        val smiler = sizeMap.keys.minBy { abs(size - it) }
+        return "${sizeMap[smiler]}${getSizeString(size - smiler)}"
     }
 }

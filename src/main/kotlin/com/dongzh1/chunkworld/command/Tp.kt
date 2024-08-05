@@ -24,9 +24,18 @@ import kotlin.random.Random
 
 object Tp {
     private val worldInfoRedis = mutableMapOf<String, EasyLibTask>()
-    fun removeWorldInfo(worldName: String) {
-        worldInfoRedis[worldName]?.cancel()
-        worldInfoRedis.remove(worldName)
+    fun removeWorldInfo(name: String) {
+        RedisManager.removeWorldInfo(name)
+        worldInfoRedis[name]?.cancel()
+        worldInfoRedis.remove(name)
+    }
+    fun removeAllWorldInfo(){
+        val names = worldInfoRedis.keys.toMutableList()
+        names.forEach {
+            RedisManager.removeWorldInfo(it)
+        }
+        worldInfoRedis.forEach { it.value.cancel() }
+        worldInfoRedis.clear()
     }
 
     fun connect(player: Player, server: String) {
@@ -164,6 +173,17 @@ object Tp {
                     NamespacedKey.fromString("chunkworld_owner")!!,
                     PersistentDataType.STRING, name
                 )
+            }else if(!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_owner")!!)){
+                //说明是继承的世界
+                world.setGameRule(GameRule.KEEP_INVENTORY, true)
+                world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS, 0)
+                world.setGameRule(GameRule.DO_FIRE_TICK, false)
+                world.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS, false)
+                world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true)
+                world.persistentDataContainer.set(
+                    NamespacedKey.fromString("chunkworld_owner")!!,
+                    PersistentDataType.STRING, name
+                )
             }
             //存储信任玩家的name
             val trustString = trusts.joinToString("|,;|")
@@ -223,19 +243,19 @@ object Tp {
             )
             RedisManager.setWorldInfo(name, worldInfo)
             //定期发送消息告诉redis世界还在
-            val task = submit(async = true, delay = 20 * 60 * 30, period = 20 * 60 * 30) {
+            val task = submit(async = true, delay = 20 * 60 * 5, period = 20 * 60 * 5) {
                 val worldNormal = Bukkit.getWorld("chunkworlds/world/$playerUUID")
                 val worldNether = Bukkit.getWorld("chunkworlds/nether/$playerUUID")
                 if (worldNormal == null && worldNether == null) {
                     //删除数据会由velocity发起
-                    removeWorldInfo("chunkworlds/world/$playerUUID")
+                    removeWorldInfo(name)
                     return@submit
                 }
                 if (worldNormal != null) {
                     RedisManager.setWorldInfo(name, getWorldInfo(worldNormal, worldNether, perm))
                 }
             }
-            worldInfoRedis["chunkworlds/world/$playerUUID"] = task
+            worldInfoRedis[name] = task
             world.getChunkAtAsync(world.spawnLocation)
             GroupListener.addLocation(name, world.spawnLocation)
             future.complete(true)
@@ -244,6 +264,14 @@ object Tp {
     }
 
     fun createNether(p: Player) {
+        val file = File("chunkworlds/nether/${p.uniqueId}")
+        val templeFile = File(ChunkWorld.inst.dataFolder, "nether")
+        try {
+            templeFile.copyRecursively(file)
+        } catch (ex: Exception) {
+            p.sendMessage("§c创建地狱失败,请联系管理员")
+            return
+        }
         val worldName = "chunkworlds/nether/${p.uniqueId}"
         val wc = WorldCreator(worldName).environment(World.Environment.NETHER).keepSpawnLoaded(TriState.FALSE)
         val world = wc.createWorld()
@@ -271,6 +299,9 @@ object Tp {
             PersistentDataType.BOOLEAN, true
         )
         world.save()
+        val worldInfo = RedisManager.getWorldInfo(p.name)
+        worldInfo!!.netherChunks = 1
+        RedisManager.setWorldInfo(p.name,worldInfo)
         p.teleportAsync(world.spawnLocation)
     }
 

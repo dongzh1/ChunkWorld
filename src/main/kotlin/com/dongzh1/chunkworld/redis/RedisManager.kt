@@ -1,6 +1,7 @@
 package com.dongzh1.chunkworld.redis
 
 import com.dongzh1.chunkworld.ChunkWorld
+import com.dongzh1.chunkworld.database.dao.ServerInfo
 import com.dongzh1.chunkworld.database.dao.WorldInfo
 import redis.clients.jedis.params.SetParams
 
@@ -14,7 +15,7 @@ object RedisManager {
             it.set(
                 "ChunkWorld_WorldInfo_$name",
                 "${i.state},${i.normalChunks},${i.netherChunks},${i.serverName},${i.showWorld}",
-                SetParams.setParams().ex(60 * 60)
+                SetParams.setParams().ex(60 * 10)
             )
         }
     }
@@ -63,11 +64,21 @@ object RedisManager {
         }
     }
 
-    fun getServerInfo(): List<Pair<String, Int>> {
+    fun getServerInfo(): List<ServerInfo> {
         jedisPool.resource.use {
-            val daoString = it.get("ChunkWorld_Server") ?: return emptyList()
-            val list = daoString.split(",")
-            return list.map { it.split("|") }.map { it[0] to it[1].toInt() }
+            val infoString = it.get("ChunkWorld_Server")?:return emptyList()
+            val infoList = infoString.split(",,,,,").drop(1)
+            val list = mutableListOf<ServerInfo>()
+            infoList.forEach { info ->
+                val stringList = info.split("|")
+                val serverInfo = ServerInfo(
+                    serverName = stringList[0],
+                    serverTps = stringList[1].toDouble(),
+                    serverplayers = stringList[2].toInt()
+                )
+                list.add(serverInfo)
+            }
+            return list
         }
     }
 

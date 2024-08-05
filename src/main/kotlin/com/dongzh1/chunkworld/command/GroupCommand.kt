@@ -12,6 +12,7 @@ import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.CommandBody
 import com.xbaimiao.easylib.util.ECommandHeader
 import com.xbaimiao.easylib.util.submit
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
 @ECommandHeader(command = "chunkworld")
@@ -65,6 +66,15 @@ object GroupCommand {
         description = "打开菜单"
         exec {
             MainGui(sender).build()
+        }
+    }
+    @CommandBody
+    private val world = command<Player>("world"){
+        description = "传送到对应世界出生点"
+        arg(name){
+            exec {
+                sender.teleportAsync(Bukkit.getWorld(valueOf(name))!!.spawnLocation)
+            }
         }
     }
 

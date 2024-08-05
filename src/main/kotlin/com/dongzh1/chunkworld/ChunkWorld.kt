@@ -1,11 +1,13 @@
 package com.dongzh1.chunkworld
 
 import com.dongzh1.chunkworld.command.GroupCommand
+import com.dongzh1.chunkworld.command.Tp
 import com.dongzh1.chunkworld.database.AbstractDatabaseApi
 import com.dongzh1.chunkworld.database.MysqlDatabaseApi
 import com.dongzh1.chunkworld.listener.GroupListener
 import com.dongzh1.chunkworld.redis.RedisConfig
 import com.dongzh1.chunkworld.redis.RedisListener
+import com.dongzh1.chunkworld.redis.RedisPush
 import com.xbaimiao.easylib.EasyPlugin
 import com.xbaimiao.easylib.command.registerCommand
 import com.xbaimiao.easylib.task.EasyLibTask
@@ -24,13 +26,14 @@ class ChunkWorld : EasyPlugin() {
         val inst get() = plugin as ChunkWorld
         lateinit var db: AbstractDatabaseApi
         lateinit var jedisPool: JedisPool
-        lateinit var subscribeTask: EasyLibTask
         lateinit var serverName: String
         const val CHANNEL = "ChunkWorld"
         lateinit var spawnLocation: Location
     }
 
     private var redisListener: RedisListener? = null
+    private lateinit var subscribeTask: EasyLibTask
+    private lateinit var pushServerInfoTask : EasyLibTask
 
     override fun onLoad() {
         super.onLoad()
@@ -90,6 +93,9 @@ class ChunkWorld : EasyPlugin() {
         //注册指令
         registerCommand(GroupCommand)
         Papi.register()
+        pushServerInfoTask = submit(async = true, delay = 20*30, period = 20) {
+            RedisPush.pushWorldInfo()
+        }
     }
 
     private fun loadResource() {
@@ -101,6 +107,8 @@ class ChunkWorld : EasyPlugin() {
     }
 
     override fun onDisable() {
+        pushServerInfoTask.cancel()
+        Tp.removeAllWorldInfo()
         //关闭redis
         try {
             redisListener!!.unsubscribe()

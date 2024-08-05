@@ -8,6 +8,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 
 object Item {
+    val menuItem = menuItem()
     /**
      * 区块清除道具
      */
@@ -49,6 +50,15 @@ object Item {
             lore.add("§f进入资源末地会消耗邀请函")
             lore.add("§f在主城进行传送")
             lore.add("§f被其他玩家邀请传送到末地也会消耗")
+        })
+    }
+    /**
+     * 菜单
+     */
+    private fun menuItem(): ItemStack {
+        return buildItem(Material.NETHER_STAR, builder = {
+            name = "§6物语菜单"
+            lore.add("§f빪 §x§1§9§c§a§a§d➠ 打开菜单")
         })
     }
 

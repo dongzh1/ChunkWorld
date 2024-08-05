@@ -4,6 +4,7 @@ import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.ChunkWorld.Companion.CHANNEL
 import com.dongzh1.chunkworld.ChunkWorld.Companion.jedisPool
 import com.xbaimiao.easylib.util.submit
+import org.bukkit.Bukkit
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -68,5 +69,8 @@ object RedisPush {
 
     fun cancelFriend(targetName: String, playerName: String, playerUUID: UUID) {
         push("cancelFriend|,|$targetName|,|$playerName|,|${playerUUID}")
+    }
+    fun pushWorldInfo(){
+        push("pushWorldInfo|,|${ChunkWorld.serverName}|,|${Bukkit.getTPS().first()}|,|${Bukkit.getPort()}|,|${Bukkit.getOnlinePlayers().size}|,|${System.currentTimeMillis()}")
     }
 }

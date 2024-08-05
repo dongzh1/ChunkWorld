@@ -25,5 +25,6 @@ class VipGui(private val p: Player) {
             lore.add("§f请联系群主进行赞助")
             lore.add("§f10RMB/月")
         }))
+        basic.openAsync()
     }
 }

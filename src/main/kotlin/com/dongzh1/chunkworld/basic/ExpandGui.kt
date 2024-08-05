@@ -161,7 +161,7 @@ class ExpandGui(private val p: Player, private val chunk: Chunk) {
                             y,
                             randomZ * 16 + (0..15).random()
                         )
-                        if (block1.type != Material.AIR) {
+                        if (block1.type != Material.AIR && block1.type != Material.CAVE_AIR && block1.type != Material.VOID_AIR) {
                             break
                         }
                     }
@@ -185,6 +185,7 @@ class ExpandGui(private val p: Player, private val chunk: Chunk) {
                     (30..64).random(),
                     randomZ * 16 + randomZ * 16 + (0..15).random()
                 )
+
                 //300,0,-30各取一个点进行测算
                 basic.set(slot, buildItem(type, builder = {
                     name = "§a选择此区块"
@@ -349,7 +350,7 @@ class ExpandGui(private val p: Player, private val chunk: Chunk) {
                 NamespacedKey.fromString("chunkworld_chunks")!!,
                 PersistentDataType.STRING
             )!!
-            val oldChunkList = chunkListString.split("|").dropLast(0)
+            val oldChunkList = chunkListString.split("|").dropLast(1)
                 .map { it.split(",")[0].toInt() to it.split(",")[1].toInt() }.toSet()
             //存入世界数据
             world.persistentDataContainer.set(
