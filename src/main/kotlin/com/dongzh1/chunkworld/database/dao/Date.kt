@@ -6,3 +6,8 @@ data class WorldInfo(
     var netherChunks: Int = 0,
     val serverName: String
 )
+data class ServerInfo(
+    val serverName: String,
+    val serverTps: Double,
+    val serverplayers: Int
+)

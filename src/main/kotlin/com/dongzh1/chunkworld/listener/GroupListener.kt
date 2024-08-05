@@ -1,16 +1,19 @@
 package com.dongzh1.chunkworld.listener
 
 import com.dongzh1.chunkworld.ChunkWorld
+import com.dongzh1.chunkworld.basic.Item
+import com.dongzh1.chunkworld.basic.ServerGui
 import com.dongzh1.chunkworld.command.Tp
 import com.xbaimiao.easylib.util.submit
 import net.kyori.adventure.text.Component
+import org.bukkit.GameMode
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.player.PlayerQuitEvent
-import org.bukkit.event.player.PlayerResourcePackStatusEvent
-import org.bukkit.event.player.PlayerRespawnEvent
+import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryDragEvent
+import org.bukkit.event.player.*
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 
 object GroupListener : Listener {
@@ -19,6 +22,9 @@ object GroupListener : Listener {
     fun addServerMap(player: Player, serverName: String, id: Int) {
         serverMap[player] = serverName to id
         submit(async = true, delay = 20 * 300) { serverMap.remove(player) }
+    }
+    fun removeServerMap(player: Player) {
+        serverMap.remove(player)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -32,7 +38,54 @@ object GroupListener : Listener {
     fun respawn(e: PlayerRespawnEvent) {
         e.respawnLocation = ChunkWorld.spawnLocation
     }
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onJoin(e: PlayerJoinEvent) {
+        val p = e.player
+        val item8 = p.inventory.getItem(8)
+        if (item8 == null){
+            p.inventory.setItem(8, Item.menuItem)
+        }else{
+            if (item8 != Item.menuItem){
+                p.inventory.setItem(8,Item.menuItem)
+                p.world.dropItem(p.location,item8)
+            }
+        }
+    }
+    @EventHandler
+    fun onInteract(e: PlayerInteractEvent) {
+        if (e.item == Item.menuItem) {
+            e.isCancelled = true
+            ServerGui(e.player).build()
+        }
+    }
+    @EventHandler
+    fun drop(e: PlayerDropItemEvent){
+        if (e.itemDrop.itemStack == Item.menuItem){
+            e.isCancelled = true
+        }
+    }
+    @EventHandler
+    fun click(e: InventoryClickEvent){
+        if (e.currentItem == Item.menuItem){
+            e.isCancelled = true
+        }
+        if (e.cursor == Item.menuItem){
+            e.isCancelled = true
+        }
+    }
+    @EventHandler
+    fun drag(e: InventoryDragEvent){
+        if (e.oldCursor == Item.menuItem){
+            e.isCancelled = true
+        }
+        if (e.cursor == Item.menuItem){
+            e.isCancelled = true
+        }
+        if (e.newItems.values.contains(Item.menuItem)){
+            e.isCancelled = true
+        }
 
+    }
     @EventHandler
     fun onQuit(e: PlayerQuitEvent) {
         e.quitMessage(null)

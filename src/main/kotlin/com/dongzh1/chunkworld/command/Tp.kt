@@ -29,7 +29,7 @@ object Tp {
         cooldown.remove("${player.uniqueId}")
     }
 
-    private fun connect(player: Player, server: String) {
+    fun connect(player: Player, server: String) {
         val byteArray = ByteArrayOutputStream()
         val out = DataOutputStream(byteArray)
         try {

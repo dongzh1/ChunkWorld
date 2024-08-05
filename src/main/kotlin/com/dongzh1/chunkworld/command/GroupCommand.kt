@@ -29,6 +29,7 @@ object GroupCommand {
     @CommandBody
     private val upload = command<CommandSender>("upload") {
         description = "上传youwan1的材质包，默认ia材质路径"
+        permission = "chunkworld.admin"
         exec {
             sender.sendMessage("正在将youwan1服材质包上传到小白服务器")
             val iaFile = File("/home/pixelServer/youwan1_25580/plugins/ItemsAdder/output/generated.zip")
@@ -53,16 +54,10 @@ object GroupCommand {
 
     @CommandBody
     private val test = command<Player>("test") {
-        description = "测试"
+        description = "跨服到youwan1，针对管理员使用"
+        permission = "chunkworld.admin"
         exec {
-            val zip = ChunkWorld.inst.config.getString("resource")!!
-            val url = repoClient.createPresignedUrl(zip, sender.uniqueId).downloadUrl
-            sender.setResourcePack(
-                url,
-                null,
-                Component.text("§a请您选择接受资源包以进入像素物语").appendNewline()
-                    .append(Component.text("§f只有接受资源包才能进行完整体验"))
-            )
+            Tp.connect(sender,"youwan1")
         }
     }
 

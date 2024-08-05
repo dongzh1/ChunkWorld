@@ -7,6 +7,7 @@ import com.dongzh1.chunkworld.listener.GroupListener
 import com.dongzh1.chunkworld.redis.RedisManager
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.buildItem
+import com.xbaimiao.easylib.util.submit
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -90,22 +91,31 @@ class ServerGui(private val p: Player) {
             val serverInfo = serverList[i]
             if (i >= slots.size) break
             basic.set(slots[i], buildItem(Material.BEDROCK, builder = {
-                name = "§7${serverInfo.first}"
-                lore.add("§f在线人数: ${serverInfo.second}/20")
+                name = "§f服务器:§7${serverInfo.serverName}"
+                lore.add("§f在线人数: ${serverInfo.serverplayers}")
+                lore.add("§f服务器tps: ${serverInfo.serverTps}")
+                lore.add("§f建议选择tps最高的服务器")
                 lore.add("§f点击传送")
             }))
             basic.onClick(slots[i]) {
                 p.closeInventory()
-                GroupListener.addServerMap(p, serverInfo.first, playerDao.id)
+                GroupListener.addServerMap(p, serverInfo.serverName, playerDao.id)
                 val zip = ChunkWorld.inst.config.getString("resource")!!
                 val url = repoClient.createPresignedUrl(zip, p.uniqueId).downloadUrl
                 val hash = ChunkWorld.inst.config.getByteList("hash").toByteArray()
-                p.setResourcePack(
+                if (!p.hasResourcePack()) p.setResourcePack(
                     url,
                     hash,
                     Component.text("§a请您选择接受资源包以进入像素物语").appendNewline()
                         .append(Component.text("§f只有接受资源包才能进行完整体验"))
                 )
+                else {
+                    Tp.addCooldown(p)
+                    submit(async = true) {
+                        Tp.toSelfWorld(p, serverInfo.serverName, playerDao.id)
+                    }
+                    GroupListener.removeServerMap(p)
+                }
 
             }
         }
