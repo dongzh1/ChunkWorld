@@ -15,3 +15,15 @@ redis:
 #每个服都应该有一个出生点，用作应急
 Location: "world,2.5,64.0,8.0,-90,0"
 serverName: "home"
+Baoxiang:
+  world:
+    Ymin: -54
+    Ymax: -1
+  #指令默认控制台执行
+    commands:
+      - "say hello"
+  nether:
+    Ymin: 10
+    Ymax: 30
+    commands:
+      - "say hello"

@@ -1,4 +1,4 @@
-package com.dongzh1.chunkworld
+package com.dongzh1.chunkworld.plugins
 
 import com.xbaimiao.easylib.bridge.PlaceholderExpansion
 import org.bukkit.OfflinePlayer
@@ -10,8 +10,15 @@ object Papi: PlaceholderExpansion() {
         -3 to "", -4 to "", -5 to "", -6 to "", -7 to "", -8 to "", -9 to "", -10 to "", -18 to "", -34 to "", -66 to "", -130 to "", -259 to "", -515 to "", -1027 to ""
     )
 
+        /**
+     * 定义一个只读属性 identifier，用于标识插件的名称
+     */
     override val identifier: String
         get() = "img"
+
+    /**
+     * 定义一个只读属性 version，用于标识插件的版本号
+     */
     override val version: String
         get() = "1.0.0"
 
@@ -31,6 +38,7 @@ object Papi: PlaceholderExpansion() {
     }
 
     private fun getSizeString(size: Int): String {
+        if (size == 0) return ""
         for (key in sizeMap.keys) {
             if (size == key) {
                 return sizeMap[key]!!

@@ -1,6 +1,7 @@
 package com.dongzh1.chunkworld.basic
 
 import com.dongzh1.chunkworld.ChunkWorld
+import com.dongzh1.chunkworld.command.GroupCommand.temples
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.buildItem
 import com.xbaimiao.easylib.util.hasItem
@@ -13,6 +14,7 @@ import org.bukkit.Chunk
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.entity.Player
+import java.io.File
 import java.time.Duration
 import kotlin.math.abs
 import kotlin.math.max
@@ -34,11 +36,11 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
             else
                 300009
             amount = chunkLevel
-            name = "§3生成区块详情"
-            lore.add("§f距离出生区块越远的区块等级越高")
+            name = "§3生成梦境区块详情"
+            lore.add("§f距离初始区块越远的区块等级越高")
             lore.add("§f这是 §f$chunkLevel 级区块")
-            lore.add("§f消耗 §b$chunkLevel §f个区块碎片来生成区块")
-            lore.add("§f请勿在选择区块时离线")
+            lore.add("§f消耗 §b$chunkLevel §f个梦境碎片来生成区块")
+            lore.add("§f请勿在生成区块时离线")
             lore.add("§4选择 §a确认 §4后碎片将无法退回")
         }))
         basic.set(30, buildItem(Material.LIME_CONCRETE, builder = {
@@ -51,13 +53,20 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
                 //扣除成功
                 p.showTitle(
                     Title.title(
-                        Component.text("§a请稍等"), Component.text("§f正在对区块进行排列组合"),
+                        Component.text("§a请稍等"), Component.text("§f正在梦境中遨游"),
                         Times.times(Duration.ofSeconds(1), Duration.ofMinutes(1), Duration.ofSeconds(1))
                     )
                 )
-                ExpandGui(p, chunk).build()
+                //选择模板文件
+                val files = File("/home/pixelServer/temples")
+                val schems = files.listFiles()
+                    ?.filter { it.name.endsWith(".schem") }
+                    ?.toList() ?: emptyList()
+                val schem = schems.random()
+
+                //打开选择界面
+                //ExpandGui(p, chunk).build()
             } else {
-                //没有足够的物品
                 p.sendMessage("§c你没有足够的物品")
             }
         }

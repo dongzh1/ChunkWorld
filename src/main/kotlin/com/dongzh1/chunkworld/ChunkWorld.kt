@@ -4,7 +4,8 @@ import com.dongzh1.chunkworld.command.GroupCommand
 import com.dongzh1.chunkworld.command.Tp
 import com.dongzh1.chunkworld.database.AbstractDatabaseApi
 import com.dongzh1.chunkworld.database.MysqlDatabaseApi
-import com.dongzh1.chunkworld.listener.GroupListener
+import com.dongzh1.chunkworld.listener.MainListener
+import com.dongzh1.chunkworld.plugins.Papi
 import com.dongzh1.chunkworld.redis.RedisConfig
 import com.dongzh1.chunkworld.redis.RedisListener
 import com.dongzh1.chunkworld.redis.RedisPush
@@ -89,7 +90,7 @@ class ChunkWorld : EasyPlugin() {
         }
         Bukkit.getConsoleSender().sendMessage("§a[ChunkWorld] §f链接redis库成功")
         //注册全局监听
-        registerListener(GroupListener)
+        registerListener(MainListener)
         //注册指令
         registerCommand(GroupCommand)
         Papi.register()

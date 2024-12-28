@@ -2,8 +2,9 @@ package com.dongzh1.chunkworld.redis
 
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.command.Tp
-import com.dongzh1.chunkworld.listener.GroupListener
+import com.dongzh1.chunkworld.listener.MainListener
 import com.xbaimiao.easylib.util.submit
+import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.NamespacedKey
@@ -28,9 +29,10 @@ class RedisListener : JedisPubSub() {
                         val world = Bukkit.getWorld(worldName)
                         if (world != null) {
                             //预加载区块，等待传送
-                            world.getChunkAtAsync(world.spawnLocation)
-                            GroupListener.addLocation(playerName, world.spawnLocation)
-                            RedisPush.teleportWorldFound(targetServerName, "$worldName$playerName", "true")
+                            world.getChunkAtAsync(world.spawnLocation).thenAccept {
+                                MainListener.addLocation(playerName, world.spawnLocation)
+                                RedisPush.teleportWorldFound(targetServerName, "$worldName$playerName", "true")
+                            }
                         } else {
                             //这个世界已经卸载了
                             RedisPush.teleportWorldFound(targetServerName, "$worldName$playerName", "false")
@@ -134,17 +136,26 @@ class RedisListener : JedisPubSub() {
 
     private fun unloadWorld(world: World): Boolean {
         //禁止其他玩家进入这个世界
-        GroupListener.addUnloadWorld(world)
+        MainListener.addUnloadWorld(world)
         if (world.players.isNotEmpty()) {
             world.players.forEach {
-                 it.teleport(ChunkWorld.spawnLocation)
-                if (it.uniqueId.toString() != world.name.split("/").last())
-                it.sendMessage("§c世界主人已离线，世界关闭")
+                if (it.teleport(ChunkWorld.spawnLocation)){
+                    if (it.uniqueId.toString() != world.name.split("/").last())
+                        it.sendMessage("§c世界主人已离线，世界关闭")
+                }else{
+                    val name = world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_owner")!!, PersistentDataType.STRING)
+                    it.kick(Component.text("$name 的世界未正常卸载，请您重新进入游戏"))
+                }
             }
+        }
+        if (world.players.isNotEmpty()){
+            val name = world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_owner")!!, PersistentDataType.STRING)!!
+            val worldInfo = RedisManager.getWorldInfo(name)!!
+            RedisManager.setWorldInfo(name,worldInfo,true)
         }
         //卸载世界
         val success = Bukkit.unloadWorld(world, true)
-        GroupListener.removeUnloadWorld(world)
+        MainListener.removeUnloadWorld(world)
         return success
     }
 }

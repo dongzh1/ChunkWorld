@@ -1,8 +1,10 @@
 package com.dongzh1.chunkworld.command
 
 
+import ParticleEffect
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.basic.MainGui
+import com.dongzh1.chunkworld.plugins.FAWE
 import com.dongzh1.chunkworld.redis.RedisManager
 import com.dongzh1.chunkworld.redis.RedisPush
 import com.xbaimiao.easylib.command.ArgNode
@@ -12,8 +14,15 @@ import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.CommandBody
 import com.xbaimiao.easylib.util.ECommandHeader
 import com.xbaimiao.easylib.util.submit
+import com.dongzh1.chunkworld.plugins.fawe
 import org.bukkit.Bukkit
+import org.bukkit.Location
+import org.bukkit.Particle
+import org.bukkit.WorldCreator
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import java.io.File
+
 
 @ECommandHeader(command = "chunkworld")
 object GroupCommand {
@@ -60,6 +69,11 @@ object GroupCommand {
     }, parse = {
         it
     })
+    private val temples = ArgNode("temples", exec = {
+        listOf("模板文件名,建议用群系名字加数字或者结构名命名,禁止中文", "ocean1", "ocean2","village1")
+    }, parse = {
+        it
+    })
 
     @CommandBody
     private val menu = command<Player>("menu") {
@@ -76,6 +90,42 @@ object GroupCommand {
                 sender.teleportAsync(Bukkit.getWorld(valueOf(name))!!.spawnLocation)
             }
         }
+    }
+    @CommandBody
+    private val chunk = command<Player>("chunk"){
+        description = "在创世神内选择玩家所在区块"
+        arg(temples){
+            exec {
+                val chunk = sender.chunk
+                fawe.saveSchem(chunk,valueOf(temples))
+            }
+        }
+    }
+    @CommandBody
+    private val test = command<Player>("test") {
+        description = "dong专用指令，用于测试效果不明的代码"
+        permission = "chunkworld.admin"
+        arg(temples){
+            exec {
+                        /*
+                        val manager: HologramManager = FancyHologramsPlugin.get().hologramManager
+                        val hologramData = TextHologramData("hologram_name", sender.location)
+                        hologramData.setBackground(Color.fromRGB(255, 65, 125))
+                        hologramData.setBillboard(Display.Billboard.FIXED)
+                        val hologram: Hologram = manager.create(hologramData)
+                        manager.addHologram(hologram)
+
+                        val loc = sender.location
+                        fawe.placeSchem("baozang.schem",loc)
+                        */
+                    //测试复制模板
+                val chunk = sender.chunk
+                val pos1 = Location(sender.world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
+                val file = File("/home/pixelServer/temples/${valueOf(temples)}.schem")
+                fawe.placeSchem(file,pos1)
+            }
+        }
+
     }
 
     @CommandBody
@@ -212,6 +262,42 @@ object GroupCommand {
                     }
                 }
             }
+        }
+    }
+
+    @CommandBody
+    private val worldload = command<Player>("worldload"){
+        booleans { bool ->
+            arg("世界名"){ worldname->
+                exec {
+                    if (valueOf(bool)){
+                        val world = Bukkit.createWorld(WorldCreator(valueOf(worldname)))
+                        if (world == null){
+                            sender.sendMessage("§c世界加载失败")
+                            return@exec
+                        }
+                        sender.teleportAsync(world.spawnLocation)
+                    }else{
+                        //卸载
+                        val world = Bukkit.getWorld(valueOf(worldname))
+                        if (world == null){
+                            sender.sendMessage("§c世界没加载")
+                            return@exec
+                        }
+                        world.players.forEach {
+                            it.teleport(ChunkWorld.spawnLocation)
+                        }
+                        Bukkit.unloadWorld(world, true)
+                    }
+                }
+            }
+        }
+    }
+    @CommandBody
+    val reload = command<CommandSender>("reload"){
+        exec {
+            ChunkWorld.inst.reloadConfig()
+            sender.sendMessage("§a重载配置文件成功,仅针对宝箱配置可重载")
         }
     }
 }

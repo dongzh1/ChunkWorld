@@ -9,14 +9,20 @@ object RedisManager {
 
     private val jedisPool = ChunkWorld.jedisPool
 
-    fun setWorldInfo(name: String, i: WorldInfo) {
+    fun setWorldInfo(name: String, i: WorldInfo,forever:Boolean= false) {
         jedisPool.resource.use {
             //信息保存1小时，期间世界会自动刷新信息
+            if (!forever)
             it.set(
                 "ChunkWorld_WorldInfo_$name",
                 "${i.state},${i.normalChunks},${i.netherChunks},${i.serverName},${i.showWorld}",
                 SetParams.setParams().ex(60 * 10)
             )
+            else
+                it.set(
+                    "ChunkWorld_WorldInfo_$name",
+                    "${i.state},${i.normalChunks},${i.netherChunks},${i.serverName},${i.showWorld}"
+                )
         }
     }
 
@@ -67,7 +73,7 @@ object RedisManager {
     fun getServerInfo(): List<ServerInfo> {
         jedisPool.resource.use {
             val infoString = it.get("ChunkWorld_Server")?:return emptyList()
-            val infoList = infoString.split(",,,,,").drop(1)
+            val infoList = infoString.split(",,,,,").dropLast(1)
             val list = mutableListOf<ServerInfo>()
             infoList.forEach { info ->
                 val stringList = info.split("|")

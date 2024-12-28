@@ -1,9 +1,9 @@
 package com.dongzh1.chunkworld.command
 
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.WorldEdit
+import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.database.dao.WorldInfo
-import com.dongzh1.chunkworld.listener.GroupListener
+import com.dongzh1.chunkworld.listener.MainListener
 import com.dongzh1.chunkworld.redis.RedisManager
 import com.dongzh1.chunkworld.redis.RedisPush
 import com.xbaimiao.easylib.skedule.SynchronizationContext
@@ -173,7 +173,7 @@ object Tp {
                     NamespacedKey.fromString("chunkworld_owner")!!,
                     PersistentDataType.STRING, name
                 )
-            }else if(!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_owner")!!)){
+            }else if(!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_state")!!)){
                 //说明是继承的世界
                 world.setGameRule(GameRule.KEEP_INVENTORY, true)
                 world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS, 0)
@@ -183,6 +183,10 @@ object Tp {
                 world.persistentDataContainer.set(
                     NamespacedKey.fromString("chunkworld_owner")!!,
                     PersistentDataType.STRING, name
+                )
+                world.persistentDataContainer.set(
+                    NamespacedKey.fromString("chunkworld_state")!!,
+                    PersistentDataType.BYTE, 2
                 )
             }
             //存储信任玩家的name
@@ -256,9 +260,10 @@ object Tp {
                 }
             }
             worldInfoRedis[name] = task
-            world.getChunkAtAsync(world.spawnLocation)
-            GroupListener.addLocation(name, world.spawnLocation)
-            future.complete(true)
+            world.getChunkAtAsync(world.spawnLocation).thenAccept {
+                MainListener.addLocation(name, world.spawnLocation)
+                future.complete(true)
+            }
         }
         return future
     }
@@ -306,6 +311,9 @@ object Tp {
     }
 
     private fun getWorldInfo(world: World, netherWorld: World?, perm: Boolean): WorldInfo {
+        if (!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_state")!!)){
+            world.persistentDataContainer.set(NamespacedKey.fromString("chunkworld_state")!!, PersistentDataType.BYTE, 2.toByte())
+        }
         val state =
             world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_state")!!, PersistentDataType.BYTE)!!
         val chunks = world.persistentDataContainer.get(

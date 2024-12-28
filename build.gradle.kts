@@ -59,8 +59,8 @@ repositories {
     maven("https://papermc.io/repo/repository/maven-public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://repo.codemc.io/repository/maven-public/")
-
-
+    maven("https://repo.fancyplugins.de/releases")
+    maven("https://repo.rosewooddev.io/repository/public/")
 }
 
 dependencies {
@@ -71,10 +71,11 @@ dependencies {
             implementation(it.id)
         }
     }
-
+    compileOnly("de.oliver:FancyHolograms:2.4.0")
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     compileOnly(kotlin("stdlib-jdk8"))
     compileOnly("de.tr7zw:item-nbt-api-plugin:2.13.1")
+    compileOnly("com.arcaniax:HeadDatabase-API:1.3.2")
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
     //compileOnly("org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT")
     compileOnly(fileTree("libs"))

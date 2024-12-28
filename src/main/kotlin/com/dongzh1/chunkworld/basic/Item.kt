@@ -1,5 +1,6 @@
 package com.dongzh1.chunkworld.basic
 
+import com.xbaimiao.easylib.util.MapItem
 import com.xbaimiao.easylib.util.buildItem
 import com.xbaimiao.easylib.util.hasItem
 import com.xbaimiao.easylib.util.takeItem
@@ -56,10 +57,24 @@ object Item {
      * 菜单
      */
     private fun menuItem(): ItemStack {
-        return buildItem(Material.NETHER_STAR, builder = {
+        return buildItem(Material.COMPASS, builder = {
             name = "§6物语菜单"
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 打开菜单")
         })
+    }
+    /**
+     * 拓印画布
+     */
+    fun copyItemUsed(x:Int,z:Int): ItemStack {
+        return  buildItem(Material.PAPER, builder = {
+            name = "§6拓印画布"
+            lore.add("§f已拓印区块: §b$x,$z")
+            lore.add("请尽快转印到碎片世界")
+            lore.add("重新使用")
+            customModelData = 300011
+        })
+
+
     }
 
     /**

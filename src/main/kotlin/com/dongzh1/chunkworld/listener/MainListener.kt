@@ -1,17 +1,20 @@
 package com.dongzh1.chunkworld.listener
 
+import ParticleEffect
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.WorldEdit
+import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.basic.*
 import com.dongzh1.chunkworld.command.Tp
+import com.xbaimiao.easylib.bridge.replacePlaceholder
+import com.xbaimiao.easylib.util.MapItem
 import com.xbaimiao.easylib.util.hasLore
 import com.xbaimiao.easylib.util.submit
+import com.xbaimiao.easylib.util.takeItem
 import com.xbaimiao.invsync.api.events.PlayerDataSyncDoneEvent
-import io.papermc.paper.event.player.PlayerInventorySlotChangeEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.title.Title
 import org.bukkit.*
-import org.bukkit.block.Chest
+import org.bukkit.block.Skull
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -25,14 +28,19 @@ import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.player.*
+import org.bukkit.event.server.MapInitializeEvent
 import org.bukkit.event.vehicle.VehicleDamageEvent
-import org.bukkit.event.world.ChunkPopulateEvent
+import org.bukkit.event.world.ChunkLoadEvent
+import org.bukkit.event.world.ChunkUnloadEvent
+import org.bukkit.inventory.meta.MapMeta
+import org.bukkit.map.MapView
 import org.bukkit.persistence.PersistentDataType
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
+import org.yaml.snakeyaml.events.MappingStartEvent
 import java.time.Duration
 import java.util.*
 
-object GroupListener : Listener {
+object MainListener : Listener {
     //玩家名对应世界，用于跨服传送
     private val locationMap = mutableMapOf<String, Location>()
     private val unloadWorld = mutableListOf<World>()
@@ -70,8 +78,10 @@ object GroupListener : Listener {
 
     private fun isBeTrust(player: Player, world: World): Boolean {
         val world1 =
-            if (world.name.contains("/nether/")) Bukkit.getWorld(world.name.replace
-                ("/nether/", "/world/"))!! else world
+            if (world.name.contains("/nether/")) Bukkit.getWorld(
+                world.name.replace
+                    ("/nether/", "/world/")
+            )!! else world
         val trustList = world1.persistentDataContainer.get(
             NamespacedKey.fromString("chunkworld_trust")!!,
             PersistentDataType.STRING
@@ -81,8 +91,10 @@ object GroupListener : Listener {
 
     private fun isBeBan(player: Player, world: World): Boolean {
         val world1 =
-            if (world.name.contains("/nether/")) Bukkit.getWorld(world.name.replace
-                ("/nether/", "/world/"))!! else world
+            if (world.name.contains("/nether/")) Bukkit.getWorld(
+                world.name.replace
+                    ("/nether/", "/world/")
+            )!! else world
         val banList = world1.persistentDataContainer.get(
             NamespacedKey.fromString("chunkworld_ban")!!,
             PersistentDataType.STRING
@@ -106,60 +118,70 @@ object GroupListener : Listener {
         e.joinMessage(null)
         val p = e.player
         val world = p.world
-        if (world.name == "world"){
+        if (world.name == "world") {
             p.gameMode = GameMode.ADVENTURE
             return
         }
-        if (!world.name.startsWith("chunkworlds/")){
+        if (!world.name.startsWith("chunkworlds/")) {
             p.gameMode = GameMode.SURVIVAL
             return
         }
-        if (isInTrustedWorld(e.player)){
+        if (isInTrustedWorld(e.player)) {
             p.gameMode = GameMode.SURVIVAL
-        }else{
+        } else {
             p.gameMode = GameMode.ADVENTURE
         }
     }
+
     @EventHandler
-    fun invSyncDone(e:PlayerDataSyncDoneEvent){
+    fun invSyncDone(e: PlayerDataSyncDoneEvent) {
         val p = e.player
         val item8 = p.inventory.getItem(8)
-        if (item8 == null){
-            p.inventory.setItem(8,Item.menuItem)
-        }else{
-            if (item8 != Item.menuItem){
-                p.inventory.setItem(8,Item.menuItem)
-                p.world.dropItem(p.location,item8)
+        if (item8 == null) {
+            p.inventory.setItem(8, Item.menuItem)
+        } else {
+            if (item8 != Item.menuItem) {
+                p.inventory.setItem(8, Item.menuItem)
+                p.world.dropItem(p.location, item8)
             }
         }
     }
-    @EventHandler
-    fun drop(e:PlayerDropItemEvent){
-        if (e.itemDrop.itemStack == Item.menuItem){
-            e.isCancelled = true
-        }
-    }
-    @EventHandler
-    fun click(e:InventoryClickEvent){
-        if (e.currentItem == Item.menuItem){
-            e.isCancelled = true
-        }
-        if (e.cursor == Item.menuItem){
-            e.isCancelled = true
-        }
-    }
-    @EventHandler
-    fun drag(e:InventoryDragEvent){
-        if (e.oldCursor == Item.menuItem){
-            e.isCancelled = true
-        }
-        if (e.cursor == Item.menuItem){
-            e.isCancelled = true
-        }
-        if (e.newItems.values.contains(Item.menuItem)){
-            e.isCancelled = true
-        }
 
+    @EventHandler
+    fun drop(e: PlayerDropItemEvent) {
+        if (e.itemDrop.itemStack == Item.menuItem) {
+            e.isCancelled = true
+        }
+    }
+
+    @EventHandler
+    fun click(e: InventoryClickEvent) {
+        if (e.currentItem == Item.menuItem) {
+            e.isCancelled = true
+        }
+        if (e.cursor == Item.menuItem) {
+            e.isCancelled = true
+        }
+    }
+
+    @EventHandler
+    fun drag(e: InventoryDragEvent) {
+        if (e.oldCursor == Item.menuItem) {
+            e.isCancelled = true
+        }
+        if (e.cursor == Item.menuItem) {
+            e.isCancelled = true
+        }
+        if (e.newItems.values.contains(Item.menuItem)) {
+            e.isCancelled = true
+        }
+    }
+
+    //切换副手
+    @EventHandler
+    fun change(e: PlayerSwapHandItemsEvent) {
+        if (e.mainHandItem == Item.menuItem) e.isCancelled = true
+        if (e.offHandItem == Item.menuItem) e.isCancelled = true
     }
 
     @EventHandler
@@ -264,27 +286,32 @@ object GroupListener : Listener {
 
     @EventHandler
     fun onInteract(e: PlayerInteractEvent) {
-        if (e.item == Item.menuItem) {
+        val p = e.player
+        val world = p.world
+        val block = e.clickedBlock
+        val item = e.item
+        if (item == Item.menuItem) {
             e.isCancelled = true
-            MainGui(e.player).build()
+            MainGui(p).build()
             return
         }
-
+        /*
         //地狱邀请函和末地邀请函
         if (e.item?.hasLore("§f一次性门票") == true) {
             e.isCancelled = true
             return
         }
+
+         */
         //虚空生成器
-        if (e.item?.itemMeta == Item.voidItem().itemMeta) {
+        if (item?.itemMeta == Item.voidItem().itemMeta) {
             e.isCancelled = true
-            if (e.player.world.name != "chunkworlds/world/${e.player.uniqueId}" && e.player.world.name != "chunkworlds/nether/${e.player.uniqueId}") {
-                e.player.sendMessage("§c只能在自己的世界使用")
+            if (world.name != "chunkworlds/world/${p.uniqueId}" && world.name != "chunkworlds/nether/${p.uniqueId}") {
+                p.sendMessage("§c只能在自己的世界使用")
                 return
             }
-            if (e.action == Action.RIGHT_CLICK_BLOCK && e.player.isSneaking) {
+            if (e.action == Action.RIGHT_CLICK_BLOCK && p.isSneaking) {
                 //右键放置
-                val block = e.clickedBlock
                 if (block != null) {
                     if (block.type != Material.BARRIER) {
                         if (block.chunk.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_unlock")!!)) e.isCancelled =
@@ -294,62 +321,96 @@ object GroupListener : Listener {
                     }
                 }
             } else {
-                e.player.sendMessage("§c请在潜行状态右键你想改变的区块")
+                p.sendMessage("§c请在潜行状态右键你想改变的区块")
                 return
             }
         }
         //如果是拓展物品，也要取消
         var isItem = false
-        if (e.item?.type == Material.PAPER) {
-            if (e.item!!.itemMeta.hasCustomModelData()) {
+        if (item?.type == Material.PAPER) {
+            if (item.itemMeta.hasCustomModelData()) {
                 //物品有模型值，看能不能和配置的模型值相等
-                if (e.item!!.itemMeta.customModelData == 300008 || e.item!!.itemMeta.customModelData == 300009) {
+                if (item.itemMeta.customModelData == 300008 || item.itemMeta.customModelData == 300009) {
                     isItem = true
                     //是指定物品，取消
                     e.isCancelled = true
                 }
+                //拓印画布
+                if (item.itemMeta.customModelData == 300011) {
+                    e.isCancelled = true
+                    //查看世界是否为指定世界
+                    if (p.world.name == "chunkworld") {
+                        val pdc = p.world.persistentDataContainer
+                        if (pdc.has(NamespacedKey(ChunkWorld.inst,"lock"))){
+                            //说明已经被选中了
+                            val pName = pdc.get(NamespacedKey(ChunkWorld.inst,"lock"), PersistentDataType.STRING)
+                            p.sendMessage("&c此区块已被 $pName 拓印,无法选中")
+                            return
+                        }
+                        //锁定区块
+                        pdc.set(NamespacedKey(ChunkWorld.inst,"lock"), PersistentDataType.STRING, p.name)
+                        //消耗物品
+                        item.amount -= 1
+                        p.inventory.addItem()
+                    }
+                    return
+                }
             }
         }
-
         //玩家不在世界世界就不管
-        if (!e.player.world.name.contains("chunkworlds/")) return
-
+        if (!p.world.name.contains("chunkworlds/")) return
         //吃东西也没事
-        if (e.hasItem() && e.item!!.type.isEdible) {
-            if (e.action == Action.RIGHT_CLICK_BLOCK || e.action == Action.RIGHT_CLICK_AIR) {
-                return
-            }
+        if (e.hasItem() && item!!.type.isEdible && e.action == Action.RIGHT_CLICK_AIR) {
+            return
         }
-
+        val chunk1 = block?.chunk
         //在世界世界和屏障交互
-        if (e.clickedBlock?.type == org.bukkit.Material.BARRIER) {
+        if (block?.type == org.bukkit.Material.BARRIER) {
             //如果是世界主人，可以拓展世界
             e.isCancelled = true
             if (isItem) {
-                if (e.player.world.name == "chunkworlds/world/${e.player.uniqueId}" || e.player.world.name == "chunkworlds/nether/${e.player.uniqueId}") {
-                    if (e.item!!.hasLore("§c已绑定${e.player.name}")) {
-                        ConfirmExpandGui(e.player, e.clickedBlock!!.chunk).build()
-                    } else {
-                        e.player.sendMessage("§c请勿使用他人物品")
+                if (chunk1?.persistentDataContainer?.has(NamespacedKey.fromString("chunkworld_unlock")!!) == false) {
+                    if (world.name == "chunkworlds/world/${p.uniqueId}" || world.name == "chunkworlds/nether/${p.uniqueId}") {
+                        if (item!!.hasLore("§c已绑定${p.name}")) {
+                            ConfirmExpandGui(p, block.chunk).build()
+                        } else {
+                            p.sendMessage("§c请勿使用他人物品")
+                        }
                     }
                 }
             }
             return
         }
 
-        if (e.player.isOp) return
-
         //不是自己的世界或被信任的世界就取消
-        if (!isInTrustedWorld(e.player)) {
+        if (!isInTrustedWorld(p)) {
+            if (p.isOp) return
             e.isCancelled = true
             return
         }
-
         //世界外面交互
-        val chunk1 = e.clickedBlock?.chunk
-        if (chunk1?.persistentDataContainer?.has(NamespacedKey.fromString("chunkworld_unlock")!!) != true) {
+        if (chunk1 != null && !chunk1.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_unlock")!!)) {
             e.isCancelled = true
             return
+        }
+        //和宝藏交互
+        if (block?.type == Material.PLAYER_HEAD) {
+            val head = block.state as Skull
+            val pdc = head.persistentDataContainer
+            if (pdc.has(NamespacedKey.fromString("baozang")!!) && world.name.contains("${p.uniqueId}")) {
+                val pUUID = pdc.get(NamespacedKey.fromString("baozang")!!, PersistentDataType.STRING)
+                ParticleEffect.stopEffect(UUID.fromString(pUUID))
+                block.type = Material.AIR
+                head.persistentDataContainer.remove(NamespacedKey.fromString("baozang")!!)
+                head.update()
+                block.chunk.persistentDataContainer.remove(NamespacedKey.fromString("baozang_location")!!)
+                val cmdList =
+                    ChunkWorld.inst.config.getStringList("Baoxiang.${e.player.world.name.split("/")[1]}.commands")
+                        .replacePlaceholder(p)
+                cmdList.forEach {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), it)
+                }
+            }
         }
     }
 
@@ -451,6 +512,13 @@ object GroupListener : Listener {
         //如果是自己的世界，那也没啥好取消的
         if (world.name == "chunkworlds/world/${player.uniqueId}" || world.name == "chunkworlds/nether/${player.uniqueId}") return
         //查看是否能传送
+        if (!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_state")!!)) {
+            world.persistentDataContainer.set(
+                NamespacedKey.fromString("chunkworld_state")!!,
+                PersistentDataType.BYTE,
+                2.toByte()
+            )
+        }
         val state =
             world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_state")!!, PersistentDataType.BYTE)!!
         if (!e.player.isOp) {
@@ -544,7 +612,7 @@ object GroupListener : Listener {
                 )
             )
         }
-        if (p.world.name == "chunkworlds/world/${p.uniqueId}"){
+        if (p.world.name == "chunkworlds/world/${p.uniqueId}") {
             val nether = Bukkit.getWorld(p.world.name.replace("/world/", "/nether/"))
             if (nether != null) {
                 p.teleportAsync(nether.spawnLocation)
@@ -552,7 +620,8 @@ object GroupListener : Listener {
                 if ((p.world.persistentDataContainer.get(
                         NamespacedKey.fromString("chunkworld_chunks")!!,
                         PersistentDataType.STRING
-                )!!.split("|").size - 1) >= 50) {
+                    )!!.split("|").size - 1) >= 50
+                ) {
                     //创建地狱
                     p.showTitle(
                         Title.title(
@@ -571,12 +640,12 @@ object GroupListener : Listener {
                 }
 
             }
-        }else if (p.world.name == "chunkworlds/nether/${p.uniqueId}"){
+        } else if (p.world.name == "chunkworlds/nether/${p.uniqueId}") {
             val world = Bukkit.getWorld(p.world.name.replace("/nether/", "/world/"))!!
             p.teleportAsync(world.spawnLocation)
         } else {
-            if (p.world.environment == World.Environment.NORMAL){
-                val world = Bukkit.getWorld(p.world.name.replace("/world/","/nether/"))
+            if (p.world.environment == World.Environment.NORMAL) {
+                val world = Bukkit.getWorld(p.world.name.replace("/world/", "/nether/"))
                 if (world != null) p.teleportAsync(world.spawnLocation)
                 else p.showTitle(
                     Title.title(
@@ -584,8 +653,8 @@ object GroupListener : Listener {
                         Title.Times.times(Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(1))
                     )
                 )
-            }else{
-                val world = Bukkit.getWorld(p.world.name.replace("/nether/","/world/"))!!
+            } else {
+                val world = Bukkit.getWorld(p.world.name.replace("/nether/", "/world/"))!!
                 p.teleportAsync(world.spawnLocation)
             }
             //别人家
@@ -617,11 +686,49 @@ object GroupListener : Listener {
         if (location != null) {
             e.respawnLocation = location
             respawn.remove(e.player)
+        } else {
+            e.respawnLocation = ChunkWorld.spawnLocation
         }
 
 
         //出生在自己世界
         //val dao = RedisData.getPlayerDao(e.player.uniqueId.toString())
 
+    }
+    /**
+     * 区块加载事件，用于产生粒子效果
+     */
+    @EventHandler
+    fun chunkLoad(e:ChunkLoadEvent){
+        val pdc = e.chunk.persistentDataContainer
+        if (pdc.has(NamespacedKey.fromString("baozang_location")!!)){
+            val loc = pdc.get(NamespacedKey.fromString("baozang_location")!!, PersistentDataType.STRING)
+            if (loc == null){
+                pdc.remove(NamespacedKey.fromString("baozang_location")!!)
+                return
+            }
+            val x = loc.split(",")[0].toInt()
+            val y = loc.split(",")[1].toInt()
+            val z = loc.split(",")[2].toInt()
+            val block = e.chunk.world.getBlockAt(x, y, z)
+            val blockState = block.state
+            if (blockState is Skull){
+                val sPDC = blockState.persistentDataContainer
+                if (sPDC.has(NamespacedKey.fromString("baozang")!!)) {
+                    val pUUID = ParticleEffect.startCircleEffect(block.location, 1.0, 5, Particle.WITCH)
+                    sPDC.set(
+                        NamespacedKey.fromString("baozang")!!,
+                        PersistentDataType.STRING, pUUID.toString()
+                    )
+                    blockState.update()
+                }else{
+                    pdc.remove(NamespacedKey.fromString("baozang_location")!!)
+                    return
+                }
+            }else{
+                pdc.remove(NamespacedKey.fromString("baozang_location")!!)
+                return
+            }
+        }
     }
 }

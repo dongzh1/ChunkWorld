@@ -1,7 +1,7 @@
-package com.dongzh1.chunkworld
+package com.dongzh1.chunkworld.plugins
 
-import com.dongzh1.chunkworld.basic.Baoxiang
-import com.dongzh1.chunkworld.basic.Item
+import ParticleEffect
+import com.dongzh1.chunkworld.ChunkWorld
 import com.fastasyncworldedit.core.util.TaskManager
 import com.sk89q.worldedit.EditSession
 import com.sk89q.worldedit.WorldEdit
@@ -15,12 +15,15 @@ import com.sk89q.worldedit.regions.Region
 import com.sk89q.worldedit.world.block.BaseBlock
 import com.sk89q.worldedit.world.block.BlockType
 import com.sk89q.worldedit.world.block.BlockTypes
-import com.xbaimiao.easylib.util.buildItem
 import com.xbaimiao.easylib.util.submit
+import me.arcaniax.hdb.api.HeadDatabaseAPI
 import org.bukkit.*
-import org.bukkit.block.Container
+import org.bukkit.block.Skull
 import org.bukkit.entity.Player
+import org.bukkit.inventory.meta.SkullMeta
+import org.bukkit.persistence.PersistentDataType
 import kotlin.random.Random
+
 
 object WorldEdit {
     /**
@@ -48,23 +51,44 @@ object WorldEdit {
     }
 
     fun setVoid(chunk: Chunk) {
-        val pos1 = Location(chunk.world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
-        val pos2 = Location(chunk.world, chunk.x * 16.toDouble() + 15, 319.0, chunk.z * 16.toDouble() + 15)
-        TaskManager.taskManager().async {
-            val world = BukkitAdapter.adapt(pos1.world)
-            val region = CuboidRegion(
-                BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
-                BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
-            )
-            // 创建一个编辑会话
-            val editSession: EditSession =
-                WorldEdit.getInstance().newEditSessionBuilder().world(world).fastMode(true).build()
+        if (chunk.world.environment == World.Environment.NORMAL){
+            val pos1 = Location(chunk.world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
+            val pos2 = Location(chunk.world, chunk.x * 16.toDouble() + 15, 319.0, chunk.z * 16.toDouble() + 15)
+            TaskManager.taskManager().async {
+                val world = BukkitAdapter.adapt(pos1.world)
+                val region = CuboidRegion(
+                    BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
+                    BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
+                )
+                // 创建一个编辑会话
+                val editSession: EditSession =
+                    WorldEdit.getInstance().newEditSessionBuilder().world(world).fastMode(true).build()
 
-            // 替换区域内的所有方块为指定方块
-            editSession.use { session ->
-                session.setBlocks(region as Region, BlockTypes.AIR!!.defaultState)
+                // 替换区域内的所有方块为指定方块
+                editSession.use { session ->
+                    session.setBlocks(region as Region, BlockTypes.AIR!!.defaultState)
+                }
+            }
+        }else{
+            val pos1 = Location(chunk.world, chunk.x * 16.toDouble(), 0.0, chunk.z * 16.toDouble())
+            val pos2 = Location(chunk.world, chunk.x * 16.toDouble() + 15, 255.0, chunk.z * 16.toDouble() + 15)
+            TaskManager.taskManager().async {
+                val world = BukkitAdapter.adapt(pos1.world)
+                val region = CuboidRegion(
+                    BlockVector3.at(pos1.blockX, pos1.blockY, pos1.blockZ),
+                    BlockVector3.at(pos2.blockX, pos2.blockY, pos2.blockZ)
+                )
+                // 创建一个编辑会话
+                val editSession: EditSession =
+                    WorldEdit.getInstance().newEditSessionBuilder().world(world).fastMode(true).build()
+
+                // 替换区域内的所有方块为指定方块
+                editSession.use { session ->
+                    session.setBlocks(region as Region, BlockTypes.AIR!!.defaultState)
+                }
             }
         }
+
     }
 
     /**
@@ -101,14 +125,14 @@ object WorldEdit {
         TaskManager.taskManager().async {
             copy(chunk, targetChunk)
             //生成宝藏
-            if (chunk.world.environment == World.Environment.NORMAL) addItems(chunk, p)
+            addItems(targetChunk, p)
         }
     }
 
     private fun copy(chunk: Chunk, targetChunk: Chunk) {
         val weWorld = BukkitAdapter.adapt(chunk.world)
 
-        if (chunk.world.environment == World.Environment.NORMAL) {
+        if (targetChunk.world.environment == World.Environment.NORMAL) {
             val region = CuboidRegion(
                 weWorld,
                 BlockVector3.at(chunk.x * 16, -64, chunk.z * 16),
@@ -127,7 +151,7 @@ object WorldEdit {
             val region = CuboidRegion(
                 weWorld,
                 BlockVector3.at(chunk.x * 16, 0, chunk.z * 16),
-                BlockVector3.at(chunk.x * 16 + 15, 128, chunk.z * 16 + 15)
+                BlockVector3.at(chunk.x * 16 + 15, 255, chunk.z * 16 + 15)
             )
             val clipboard = BlockArrayClipboard(region)
             region.compile(clipboard, weWorld)
@@ -165,7 +189,7 @@ object WorldEdit {
                 val pos2 = Location(
                     targetChunk.world,
                     targetChunk.x * 16.toDouble() + 15,
-                    128.0,
+                    255.0,
                     targetChunk.z * 16.toDouble() + 15
                 )
                 setBlock(pos1, pos2, BlockTypes.AIR!!)
@@ -282,23 +306,51 @@ object WorldEdit {
     }
 
     private fun addItems(chunk: Chunk, p: Player) {
+        fun getAmount(amountString: String):Int{
+            return if (amountString.contains("-")){
+                val min = amountString.split("-")[0].toInt()
+                val max = amountString.split("-")[1].toInt()
+                Random.nextInt(min,max+1)
+            }else{
+                amountString.toInt()
+            }
+        }
         submit {
-            val block = chunk.getBlock(Random.nextInt(0, 16), Random.nextInt(-60, -1), Random.nextInt(0, 16))
-            block.type = Material.BARREL
-            val state = block.state as Container
-            for (i in 0..Random.nextInt(1, 6)) {
-                state.inventory.addItem(Item.netherItem(p))
+            val config =
+                if (chunk.world.environment == World.Environment.NORMAL){
+                    ChunkWorld.inst.config.getConfigurationSection("Baoxiang.world")!!
+                }else{
+                    ChunkWorld.inst.config.getConfigurationSection("Baoxiang.nether")!!
+                }
+            val block = chunk.getBlock(Random.nextInt(3, 13),
+                Random.nextInt(config.getInt("Ymin"), config.getInt("Ymax")),
+                Random.nextInt(3, 13))
+            //清理周围的方块，形成一个3*3*3的空间
+            for (x in -1..1) {
+                for (y in 0..2) {
+                    for (z in -1..1) {
+                        val block1 = block.getRelative(x, y, z)
+                        block1.type = Material.AIR
+                    }
+                }
             }
-            for (i in 0..Random.nextInt(1, 4)) {
-                state.inventory.addItem(Item.endItem(p))
-            }
-            for (i in 0..Random.nextInt(1, 20)) {
-                val item = buildItem(
-                    Baoxiang.entries.toTypedArray().random().material,
-                    builder = { amount = Random.nextInt(1, 16) })
-                state.inventory.addItem(item)
-            }
-            Bukkit.getConsoleSender().sendMessage("某人的区块拓展了，宝箱位置在 ${block.location}")
+            val light = block.getRelative(0, -1, 0)
+            light.type = Material.SEA_LANTERN
+            block.type = Material.PLAYER_HEAD
+            //指定玩家头颅
+            val meta = block.state as Skull
+            val hdb = HeadDatabaseAPI()
+            val head = hdb.getItemHead("59124").itemMeta as SkullMeta
+            meta.ownerProfile = head.playerProfile
+            //把头颅信息保存好，便于监听,并播放粒子
+            val pUUID = ParticleEffect.startCircleEffect(block.location,1.0,5,Particle.WITCH)
+            meta.persistentDataContainer.set(
+                NamespacedKey.fromString("baozang")!!,
+                PersistentDataType.STRING,pUUID.toString())
+            block.chunk.persistentDataContainer.set(
+                NamespacedKey.fromString("baozang_location")!!,
+                PersistentDataType.STRING,"${block.x},${block.y},${block.z}")
+            meta.update()
         }
     }
 }

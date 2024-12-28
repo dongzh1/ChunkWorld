@@ -1,0 +1,14 @@
+item:
+  name: "&7&l小麦"
+  lore:
+    - "&7小麦是一种植物"
+  material: PAPER
+  custom-model-data: 1
+item_flame:
+  material: PAPER
+  custom-model-data: 1
+  name: "&7&l虚幻小麦生成器"
+output:
+  material: WHEAT
+  name: "&7&l小麦"
+  amount: 1
