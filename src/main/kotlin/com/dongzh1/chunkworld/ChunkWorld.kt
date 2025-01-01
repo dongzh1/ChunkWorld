@@ -6,6 +6,7 @@ import com.dongzh1.chunkworld.database.AbstractDatabaseApi
 import com.dongzh1.chunkworld.database.MysqlDatabaseApi
 import com.dongzh1.chunkworld.listener.MainListener
 import com.dongzh1.chunkworld.plugins.Papi
+import com.dongzh1.chunkworld.plugins.PapiChunkWorld
 import com.dongzh1.chunkworld.redis.RedisConfig
 import com.dongzh1.chunkworld.redis.RedisListener
 import com.dongzh1.chunkworld.redis.RedisPush
@@ -39,6 +40,19 @@ class ChunkWorld : EasyPlugin() {
     override fun onLoad() {
         super.onLoad()
         saveDefaultConfig()
+        //清除过期的数据,玩家的存储模板文件夹
+        val playerTemplesWorlds = File("/home/pixelServer/playerTemples/world")
+            .listFiles()?.filter {!it.isDirectory && it.name.endsWith(".schem") }?: emptyList<File>()
+        val playerTemplesNether = File("/home/pixelServer/playerTemples/nether")
+            .listFiles()?.filter {!it.isDirectory && it.name.endsWith(".schem") }?: emptyList<File>()
+        val playerTemples = playerTemplesWorlds + playerTemplesNether
+        playerTemples.forEach {
+            val time = it.name.replace(".schem", "").split("_").last()
+            //超过10天就删除
+            if (time.toLong() < System.currentTimeMillis() - 10 * 24 * 60 * 60 * 1000) {
+                it.delete()
+            }
+        }
     }
 
     override fun enable() {
@@ -94,6 +108,7 @@ class ChunkWorld : EasyPlugin() {
         //注册指令
         registerCommand(GroupCommand)
         Papi.register()
+        PapiChunkWorld.register()
         pushServerInfoTask = submit(async = true, delay = 20*30, period = 20) {
             RedisPush.pushWorldInfo()
         }

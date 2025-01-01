@@ -61,6 +61,7 @@ repositories {
     maven("https://repo.codemc.io/repository/maven-public/")
     maven("https://repo.fancyplugins.de/releases")
     maven("https://repo.rosewooddev.io/repository/public/")
+    maven("https://repo.papermc.io/repository/maven-public/")
 }
 
 dependencies {

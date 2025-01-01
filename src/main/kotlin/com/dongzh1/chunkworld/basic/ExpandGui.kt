@@ -397,12 +397,12 @@ class ExpandGui(private val p: Player, private val chunk: Chunk) {
             }
         } else {
             if (p.inventory.hasItem(matcher = {
-                    type == Material.PAPER && itemMeta.customModelData == 300009 && hasLore(
+                    type == Material.PAPER && itemMeta.hasCustomModelData() && itemMeta.customModelData == 300009 && hasLore(
                         "§c已绑定${p.name}"
                     )
                 })) {
                 if (p.inventory.takeItem(matcher = {
-                        type == Material.PAPER && itemMeta.customModelData == 300009 && hasLore(
+                        type == Material.PAPER && itemMeta.hasCustomModelData() && itemMeta.customModelData == 300009 && hasLore(
                             "§c已绑定${p.name}"
                         )
                     })) {

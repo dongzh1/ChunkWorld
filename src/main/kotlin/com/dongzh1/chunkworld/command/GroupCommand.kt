@@ -15,13 +15,12 @@ import com.xbaimiao.easylib.util.CommandBody
 import com.xbaimiao.easylib.util.ECommandHeader
 import com.xbaimiao.easylib.util.submit
 import com.dongzh1.chunkworld.plugins.fawe
-import org.bukkit.Bukkit
-import org.bukkit.Location
-import org.bukkit.Particle
-import org.bukkit.WorldCreator
+import org.bukkit.*
+import org.bukkit.block.Biome
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import java.io.File
+import java.util.*
 
 
 @ECommandHeader(command = "chunkworld")
@@ -69,8 +68,44 @@ object GroupCommand {
     }, parse = {
         it
     })
+    private val worldName = ArgNode("world", exec = {
+        Bukkit.getWorlds().map { it.name }
+    }, parse = {
+        it
+    })
     private val temples = ArgNode("temples", exec = {
-        listOf("模板文件名,建议用群系名字加数字或者结构名命名,禁止中文", "ocean1", "ocean2","village1")
+        listOf("文件名，拒绝大写，中文")
+    }, parse = {
+        it
+    })
+    private fun findSchemFilesWithRelativePaths(folderPath: String): List<String> {
+        val schemFiles = mutableListOf<String>()
+        val folder = File(folderPath)
+        if (folder.exists() && folder.isDirectory) {
+            val files = folder.listFiles()
+            if (files!= null) {
+                for (file in files) {
+                    if (file.isDirectory) {
+                        val relativePath = file.name
+                        val subFolderSchemFiles = findSchemFilesWithRelativePaths(file.absolutePath)
+                        subFolderSchemFiles.forEach { schemFile ->
+                            schemFiles.add("$relativePath/$schemFile")
+                        }
+                    } else if (file.name.endsWith(".schem")) {
+                        schemFiles.add(file.name)
+                    }
+                }
+            }
+        }
+        return schemFiles
+    }
+    private val schem = ArgNode("schem", exec = {
+        findSchemFilesWithRelativePaths("/home/pixelServer/temples")
+    }, parse = {
+        File("/home/pixelServer/temples/$it")
+    })
+    private val rare = ArgNode("rare", exec = {
+        listOf("普通","稀有","史诗","传说","唯一")
     }, parse = {
         it
     })
@@ -85,7 +120,7 @@ object GroupCommand {
     @CommandBody
     private val world = command<Player>("world"){
         description = "传送到对应世界出生点"
-        arg(name){
+        arg(worldName){ name->
             exec {
                 sender.teleportAsync(Bukkit.getWorld(valueOf(name))!!.spawnLocation)
             }
@@ -94,18 +129,49 @@ object GroupCommand {
     @CommandBody
     private val chunk = command<Player>("chunk"){
         description = "在创世神内选择玩家所在区块"
-        arg(temples){
-            exec {
-                val chunk = sender.chunk
-                fawe.saveSchem(chunk,valueOf(temples))
+        arg(temples){ temples->
+            arg(rare){ rare->
+                exec {
+                    val rareString =
+                    when(valueOf(rare)){
+                        "普通" -> "putong"
+                        "稀有" -> "xiyou"
+                        "史诗" -> "shishi"
+                        "传说" -> "chuanshuo"
+                        "唯一" -> "weiyi"
+                        else -> "其他"
+                    }
+                    val chunk = sender.chunk
+                    if(fawe.saveSchem(chunk,valueOf(temples),rareString)){
+                        sender.sendMessage("§a已保存区块")
+                    }else{
+                        sender.sendMessage("§c保存区块失败")
+                    }
+                }
             }
         }
     }
     @CommandBody
     private val test = command<Player>("test") {
-        description = "dong专用指令，用于测试效果不明的代码"
+        description = "dong专用指令，用于测试效果不明的代码，目前用于测试保存的区块"
         permission = "chunkworld.admin"
-        arg(temples){
+        arg(schem){ schem ->
+            exec {
+                val pos1:Location
+                val world = sender.world
+                val chunk = sender.chunk
+                if (world.environment == World.Environment.NORMAL){
+                    pos1 = Location(world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
+                }else if (sender.world.environment == World.Environment.NETHER){
+                    pos1 = Location(world, chunk.x * 16.toDouble(), 0.0, chunk.z * 16.toDouble())
+                }else return@exec
+                sender.chunk.entities.filter { it !is Player }.forEach {
+                    it.remove()
+                }
+                fawe.placeSchem(valueOf(schem),pos1)
+            }
+        }
+        /*
             exec {
                         /*
                         val manager: HologramManager = FancyHologramsPlugin.get().hologramManager
@@ -118,14 +184,11 @@ object GroupCommand {
                         val loc = sender.location
                         fawe.placeSchem("baozang.schem",loc)
                         */
-                    //测试复制模板
-                val chunk = sender.chunk
-                val pos1 = Location(sender.world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
-                val file = File("/home/pixelServer/temples/${valueOf(temples)}.schem")
-                fawe.placeSchem(file,pos1)
+                    //测试石化区块
+                //fawe.replaceEx(sender.chunk)
             }
-        }
 
+         */
     }
 
     @CommandBody

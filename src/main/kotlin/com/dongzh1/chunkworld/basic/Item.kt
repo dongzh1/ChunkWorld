@@ -1,12 +1,18 @@
 package com.dongzh1.chunkworld.basic
 
+import com.dongzh1.chunkworld.ChunkWorld
+import com.xbaimiao.easylib.bridge.replacePlaceholder
 import com.xbaimiao.easylib.util.MapItem
 import com.xbaimiao.easylib.util.buildItem
 import com.xbaimiao.easylib.util.hasItem
 import com.xbaimiao.easylib.util.takeItem
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.persistence.PersistentDataType
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 object Item {
     val menuItem = menuItem()
@@ -65,15 +71,29 @@ object Item {
     /**
      * 拓印画布
      */
-    fun copyItemUsed(x:Int,z:Int): ItemStack {
-        return  buildItem(Material.PAPER, builder = {
+    fun copyItemUsed(schemName:String,p:Player): ItemStack {
+        // 获取当前时间
+        val currentTime = LocalDateTime.now()
+        // 定义格式化样式
+        val formatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日")
+        // 格式化当前时间
+        val formattedTime = currentTime.format(formatter)
+        val i = buildItem(Material.PAPER, builder = {
+            amount = 1
             name = "§6拓印画布"
-            lore.add("§f已拓印区块: §b$x,$z")
-            lore.add("请尽快转印到碎片世界")
-            lore.add("重新使用")
+            lore.add("§c已绑定%player_name%".replacePlaceholder(p))
+            lore.add("§7已在§b神明梦境§7拓印区块")
+            lore.add("§7在你的§b梦境世界§7中右键使用")
+            lore.add("§7画布中区块数据仅保留§c7§7天")
+            lore.add("§7拓印时间:§b$formattedTime")
+            lore.add("§c具现化后原区块无法找回")
             customModelData = 300011
         })
-
+        val meta = i.itemMeta
+        val pdc = meta.persistentDataContainer
+        pdc.set(NamespacedKey(ChunkWorld.inst, "schem"), PersistentDataType.STRING,schemName)
+        i.itemMeta = meta
+        return i
 
     }
 

@@ -4,15 +4,19 @@ import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.database.dao.WorldInfo
 import com.dongzh1.chunkworld.listener.MainListener
+import com.dongzh1.chunkworld.plugins.fawe
 import com.dongzh1.chunkworld.redis.RedisManager
 import com.dongzh1.chunkworld.redis.RedisPush
 import com.xbaimiao.easylib.skedule.SynchronizationContext
 import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.task.EasyLibTask
 import com.xbaimiao.easylib.util.submit
+import me.arcaniax.hdb.api.HeadDatabaseAPI
 import net.kyori.adventure.util.TriState
 import org.bukkit.*
+import org.bukkit.block.Skull
 import org.bukkit.entity.Player
+import org.bukkit.inventory.meta.SkullMeta
 import org.bukkit.persistence.PersistentDataType
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -155,6 +159,21 @@ object Tp {
                     world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,
                     world
                 )
+                //新世界有礼包要弄,2024年12月的世界模板
+                val block = world.getBlockAt(9, -31, 4)
+                val meta = block.state as Skull
+                val hdb = HeadDatabaseAPI()
+                val head = hdb.getItemHead("59124").itemMeta as SkullMeta
+                meta.ownerProfile = head.playerProfile
+                //把头颅信息保存好，便于监听,并播放粒子
+                val pUUID = ParticleEffect.startCircleEffect(block.location,1.0,5,Particle.WITCH)
+                meta.persistentDataContainer.set(
+                    NamespacedKey.fromString("baozang")!!,
+                    PersistentDataType.STRING,pUUID.toString())
+                block.chunk.persistentDataContainer.set(
+                    NamespacedKey.fromString("baozang_location")!!,
+                    PersistentDataType.STRING,"${block.x},${block.y},${block.z}")
+                meta.update()
                 switchContext(SynchronizationContext.ASYNC)
                 //存储一些重要信息
                 world.persistentDataContainer.set(

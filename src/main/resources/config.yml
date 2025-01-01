@@ -22,8 +22,10 @@ Baoxiang:
   #指令默认控制台执行
     commands:
       - "say hello"
+      - "neigeitems drop 拓印画布 1 %chunkworlds_world% {location} false %player_name%"
   nether:
     Ymin: 10
     Ymax: 30
     commands:
       - "say hello"
+      - "neigeitems drop 拓印画布 1 %chunkworlds_nether% {location} false %player_name%"

@@ -5,6 +5,7 @@ import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.basic.*
 import com.dongzh1.chunkworld.command.Tp
+import com.dongzh1.chunkworld.plugins.fawe
 import com.xbaimiao.easylib.bridge.replacePlaceholder
 import com.xbaimiao.easylib.util.MapItem
 import com.xbaimiao.easylib.util.hasLore
@@ -37,6 +38,7 @@ import org.bukkit.map.MapView
 import org.bukkit.persistence.PersistentDataType
 import org.spigotmc.event.player.PlayerSpawnLocationEvent
 import org.yaml.snakeyaml.events.MappingStartEvent
+import java.io.File
 import java.time.Duration
 import java.util.*
 
@@ -60,7 +62,7 @@ object MainListener : Listener {
         return locationMap[name]
     }
 
-    private val respawn = mutableMapOf<Player, Location>()
+    //private val respawn = mutableMapOf<Player, Location>()
     private fun isInTrustedWorld(player: Player): Boolean {
         if (player.world.name == "chunkworlds/world/${player.uniqueId}" || player.world.name == "chunkworlds/nether/${player.uniqueId}") return true
         val world = if (player.world.name.contains("/nether/")) Bukkit.getWorld(
@@ -290,6 +292,21 @@ object MainListener : Listener {
         val world = p.world
         val block = e.clickedBlock
         val item = e.item
+        //查看是否为这个玩家的道具,仅针对绑定的物品
+        if (item != null){
+            val firstLore = item.lore()?.firstOrNull()
+            if (firstLore != null){
+                val first = firstLore.toString()
+                if (first.contains("已绑定")) {
+                    //说明使用了别人的绑定道具
+                    if (!item.hasLore("§c已绑定${p.name}")) {
+                        p.sendMessage("§c请勿使用他人物品")
+                        e.isCancelled = true
+                        return
+                    }
+                }
+            }
+        }
         if (item == Item.menuItem) {
             e.isCancelled = true
             MainGui(p).build()
@@ -302,7 +319,7 @@ object MainListener : Listener {
             return
         }
 
-         */
+
         //虚空生成器
         if (item?.itemMeta == Item.voidItem().itemMeta) {
             e.isCancelled = true
@@ -325,63 +342,105 @@ object MainListener : Listener {
                 return
             }
         }
-        //如果是拓展物品，也要取消
-        var isItem = false
-        if (item?.type == Material.PAPER) {
-            if (item.itemMeta.hasCustomModelData()) {
-                //物品有模型值，看能不能和配置的模型值相等
-                if (item.itemMeta.customModelData == 300008 || item.itemMeta.customModelData == 300009) {
-                    isItem = true
-                    //是指定物品，取消
-                    e.isCancelled = true
-                }
-                //拓印画布
-                if (item.itemMeta.customModelData == 300011) {
-                    e.isCancelled = true
-                    //查看世界是否为指定世界
-                    if (p.world.name == "chunkworld") {
-                        val pdc = p.world.persistentDataContainer
-                        if (pdc.has(NamespacedKey(ChunkWorld.inst,"lock"))){
-                            //说明已经被选中了
-                            val pName = pdc.get(NamespacedKey(ChunkWorld.inst,"lock"), PersistentDataType.STRING)
-                            p.sendMessage("&c此区块已被 $pName 拓印,无法选中")
-                            return
-                        }
-                        //锁定区块
-                        pdc.set(NamespacedKey(ChunkWorld.inst,"lock"), PersistentDataType.STRING, p.name)
-                        //消耗物品
-                        item.amount -= 1
-                        p.inventory.addItem()
-                    }
-                    return
-                }
-            }
-        }
-        //玩家不在世界世界就不管
-        if (!p.world.name.contains("chunkworlds/")) return
+         */
         //吃东西也没事
         if (e.hasItem() && item!!.type.isEdible && e.action == Action.RIGHT_CLICK_AIR) {
             return
         }
+        /*
+        特殊物品判断
+         */
+        if (item?.type == Material.PAPER) {
+            val meta = item.itemMeta
+            if (meta.hasCustomModelData()) {
+                //一方梦境
+                if (meta.customModelData == 300010) {
+                    if (e.action == Action.RIGHT_CLICK_AIR || e.action == Action.RIGHT_CLICK_BLOCK) {
+                        e.isCancelled = true
+                        //世界判断，不是自己的世界没法用
+                        if(world.name == "chunkworlds/world/${p.uniqueId}" || world.name == "chunkworlds/nether/${p.uniqueId}"){
+                            //打开刷新菜单
+                            RefreshGui(p).build(meta)
+                            return
+                        }else{
+                            p.sendMessage("§c请在你自己的梦境世界使用")
+                            return
+                        }
+                    }
+                }
+                //拓印画布
+                if (meta.customModelData == 300011) {
+                    if (e.action == Action.RIGHT_CLICK_AIR || e.action == Action.RIGHT_CLICK_BLOCK) {
+                        e.isCancelled = true
+                        //获取数据，查看是存储了区块的还是没使用的
+                        val pdc = meta.persistentDataContainer
+                        if (pdc.has(NamespacedKey(ChunkWorld.inst,"schem"))) {
+                            //说明已经被选中了区块，只能在自己的梦境世界使用
+                            //世界判断，不是自己的世界没法用
+                            if(world.name == "chunkworlds/world/${p.uniqueId}" || world.name == "chunkworlds/nether/${p.uniqueId}"){
+                                //获取模板进行粘贴
+                                val schemName = pdc.get(NamespacedKey(ChunkWorld.inst, "schem"), PersistentDataType.STRING)?:return
+                                val worldType = schemName.split("/")[4]
+                                //获取世界类型是否正确
+                                if(world.environment == World.Environment.NORMAL){
+                                    if (worldType != "world"){
+                                        p.sendMessage("§c此拓印画布保存的是地狱区块,请在梦境地狱使用")
+                                        return
+                                    }
+                                }else if (world.environment == World.Environment.NETHER){
+                                    if (worldType != "nether"){
+                                        p.sendMessage("§c此拓印画布保存的是主世界区块,请在梦境主世界使用")
+                                        return
+                                    }
+                                }else {
+                                    p.sendMessage("§c未知的世界类型")
+                                    return
+                                }
+                                //获取存储的时间
+                                val time = schemName.split("/").last().split(".").first().split("_").last().toLong()
+                                //超过7天过期
+                                if (System.currentTimeMillis() - time > 7 * 24 * 60 * 60 * 1000) {
+                                    p.sendMessage("§c此拓印画布保存的区块已消散,下次请尽快使用")
+                                    p.inventory.takeItem { itemMeta == meta }
+                                    return
+                                }
+                                val schem = File(schemName)
+                                PasteGui(p).build(schem,meta)
+                                return
+                            }else{
+                                p.sendMessage("§c请在你自己的梦境世界使用")
+                                return
+                            }
+
+                        }else{
+                            //说明还没使用,要在神明梦境使用
+                            if (world.name != "chunkworld"){
+                                //不是神明世界
+                                p.sendMessage("§c请在神明梦境使用")
+                                return
+                            }
+                            //是神明世界,打开菜单进行操作
+                            CopyGui(p).build(meta)
+                        }
+                    }
+                }
+            }
+        }
+        //玩家不在梦境世界就不管
+        if (!p.world.name.contains("chunkworlds/")) return
+
         val chunk1 = block?.chunk
         //在世界世界和屏障交互
         if (block?.type == org.bukkit.Material.BARRIER) {
             //如果是世界主人，可以拓展世界
             e.isCancelled = true
-            if (isItem) {
                 if (chunk1?.persistentDataContainer?.has(NamespacedKey.fromString("chunkworld_unlock")!!) == false) {
                     if (world.name == "chunkworlds/world/${p.uniqueId}" || world.name == "chunkworlds/nether/${p.uniqueId}") {
-                        if (item!!.hasLore("§c已绑定${p.name}")) {
-                            ConfirmExpandGui(p, block.chunk).build()
-                        } else {
-                            p.sendMessage("§c请勿使用他人物品")
-                        }
+                        ConfirmExpandGui(p, block.chunk).build()
                     }
                 }
-            }
             return
         }
-
         //不是自己的世界或被信任的世界就取消
         if (!isInTrustedWorld(p)) {
             if (p.isOp) return
@@ -408,7 +467,8 @@ object MainListener : Listener {
                     ChunkWorld.inst.config.getStringList("Baoxiang.${e.player.world.name.split("/")[1]}.commands")
                         .replacePlaceholder(p)
                 cmdList.forEach {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), it)
+                    val cmd =it.replace("{location}","${block.x} ${block.y} ${block.z}")
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)
                 }
             }
         }
@@ -663,6 +723,7 @@ object MainListener : Listener {
 
     }
 
+    /*
     /**
      * 玩家死亡重生,在自己世界死就在自己世界生
      */
@@ -677,23 +738,20 @@ object MainListener : Listener {
         submit(delay = 60) { respawn.remove(p) }
     }
 
+     */
+
     /**
-     * 玩家重生事件
+     * 玩家重生事件，只要玩家世界加载了，就在玩家世界重生
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     fun reborn(e: PlayerRespawnEvent) {
-        val location = respawn[e.player]
-        if (location != null) {
-            e.respawnLocation = location
-            respawn.remove(e.player)
+        val p = e.player
+        val world = Bukkit.getWorld("chunkworlds/world/${p.uniqueId}")
+        if (world != null) {
+            e.respawnLocation = world.spawnLocation
         } else {
             e.respawnLocation = ChunkWorld.spawnLocation
         }
-
-
-        //出生在自己世界
-        //val dao = RedisData.getPlayerDao(e.player.uniqueId.toString())
-
     }
     /**
      * 区块加载事件，用于产生粒子效果
@@ -715,6 +773,10 @@ object MainListener : Listener {
             if (blockState is Skull){
                 val sPDC = blockState.persistentDataContainer
                 if (sPDC.has(NamespacedKey.fromString("baozang")!!)) {
+                    //这里要重新生成粒子效果了，但是可能之前的没有删除干净，所以要删除一次
+                    val oldID = sPDC.get(NamespacedKey.fromString("baozang")!!, PersistentDataType.STRING)
+                    if (oldID != null) ParticleEffect.stopEffect(UUID.fromString(oldID))
+                    //生成新的粒子效果并记录
                     val pUUID = ParticleEffect.startCircleEffect(block.location, 1.0, 5, Particle.WITCH)
                     sPDC.set(
                         NamespacedKey.fromString("baozang")!!,
