@@ -1,12 +1,12 @@
 package com.dongzh1.chunkworld.command
 
 
-import ParticleEffect
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.basic.MainGui
-import com.dongzh1.chunkworld.plugins.FAWE
+import com.dongzh1.chunkworld.plugins.fawe
 import com.dongzh1.chunkworld.redis.RedisManager
 import com.dongzh1.chunkworld.redis.RedisPush
+import com.xbaimiao.easylib.bridge.economy.Vault
 import com.xbaimiao.easylib.command.ArgNode
 import com.xbaimiao.easylib.command.command
 import com.xbaimiao.easylib.skedule.SynchronizationContext
@@ -14,13 +14,13 @@ import com.xbaimiao.easylib.skedule.launchCoroutine
 import com.xbaimiao.easylib.util.CommandBody
 import com.xbaimiao.easylib.util.ECommandHeader
 import com.xbaimiao.easylib.util.submit
-import com.dongzh1.chunkworld.plugins.fawe
-import org.bukkit.*
-import org.bukkit.block.Biome
+import org.bukkit.Bukkit
+import org.bukkit.Location
+import org.bukkit.World
+import org.bukkit.WorldCreator
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import java.io.File
-import java.util.*
 
 
 @ECommandHeader(command = "chunkworld")
@@ -78,12 +78,13 @@ object GroupCommand {
     }, parse = {
         it
     })
+
     private fun findSchemFilesWithRelativePaths(folderPath: String): List<String> {
         val schemFiles = mutableListOf<String>()
         val folder = File(folderPath)
         if (folder.exists() && folder.isDirectory) {
             val files = folder.listFiles()
-            if (files!= null) {
+            if (files != null) {
                 for (file in files) {
                     if (file.isDirectory) {
                         val relativePath = file.name
@@ -99,13 +100,14 @@ object GroupCommand {
         }
         return schemFiles
     }
+
     private val schem = ArgNode("schem", exec = {
         findSchemFilesWithRelativePaths("/home/pixelServer/temples")
     }, parse = {
         File("/home/pixelServer/temples/$it")
     })
     private val rare = ArgNode("rare", exec = {
-        listOf("普通","稀有","史诗","传说","唯一")
+        listOf("普通", "稀有", "史诗", "传说", "唯一")
     }, parse = {
         it
     })
@@ -117,58 +119,82 @@ object GroupCommand {
             MainGui(sender).build()
         }
     }
+
+    /**
+     * 突发奇想，购买菜单指令
+     */
     @CommandBody
-    private val world = command<Player>("world"){
+    private val buymenu = command<Player>("buymenu") {
+        description = "购买菜单"
+        exec {
+            //根据玩家的经济情况进行扣款
+            var money = (Vault()[sender] * 0.01).toInt()
+            if (money < 1) {
+                money = 0
+            }
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mythicmobs items give -ds ${sender.name} 梦境菜单")
+            Vault().take(sender, money.toDouble())
+            sender.sendMessage("§a你已花费${money}元购买§6梦境菜单")
+
+        }
+    }
+
+    @CommandBody
+    private val world = command<Player>("world") {
+        permission = "chunkworld.admin"
         description = "传送到对应世界出生点"
-        arg(worldName){ name->
+        arg(worldName) { name ->
             exec {
                 sender.teleportAsync(Bukkit.getWorld(valueOf(name))!!.spawnLocation)
             }
         }
     }
+
     @CommandBody
-    private val chunk = command<Player>("chunk"){
+    private val chunk = command<Player>("chunk") {
+        permission = "chunkworld.admin"
         description = "在创世神内选择玩家所在区块"
-        arg(temples){ temples->
-            arg(rare){ rare->
+        arg(temples) { temples ->
+            arg(rare) { rare ->
                 exec {
                     val rareString =
-                    when(valueOf(rare)){
-                        "普通" -> "putong"
-                        "稀有" -> "xiyou"
-                        "史诗" -> "shishi"
-                        "传说" -> "chuanshuo"
-                        "唯一" -> "weiyi"
-                        else -> "其他"
-                    }
+                        when (valueOf(rare)) {
+                            "普通" -> "putong"
+                            "稀有" -> "xiyou"
+                            "史诗" -> "shishi"
+                            "传说" -> "chuanshuo"
+                            "唯一" -> "weiyi"
+                            else -> "其他"
+                        }
                     val chunk = sender.chunk
-                    if(fawe.saveSchem(chunk,valueOf(temples),rareString)){
+                    if (fawe.saveSchem(chunk, valueOf(temples), rareString)) {
                         sender.sendMessage("§a已保存区块")
-                    }else{
+                    } else {
                         sender.sendMessage("§c保存区块失败")
                     }
                 }
             }
         }
     }
+
     @CommandBody
     private val test = command<Player>("test") {
         description = "dong专用指令，用于测试效果不明的代码，目前用于测试保存的区块"
         permission = "chunkworld.admin"
-        arg(schem){ schem ->
+        arg(schem) { schem ->
             exec {
-                val pos1:Location
+                val pos1: Location
                 val world = sender.world
                 val chunk = sender.chunk
-                if (world.environment == World.Environment.NORMAL){
+                if (world.environment == World.Environment.NORMAL) {
                     pos1 = Location(world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
-                }else if (sender.world.environment == World.Environment.NETHER){
+                } else if (sender.world.environment == World.Environment.NETHER) {
                     pos1 = Location(world, chunk.x * 16.toDouble(), 0.0, chunk.z * 16.toDouble())
-                }else return@exec
+                } else return@exec
                 sender.chunk.entities.filter { it !is Player }.forEach {
                     it.remove()
                 }
-                fawe.placeSchem(valueOf(schem),pos1)
+                fawe.placeSchem(valueOf(schem), pos1)
             }
         }
         /*
@@ -329,21 +355,22 @@ object GroupCommand {
     }
 
     @CommandBody
-    private val worldload = command<Player>("worldload"){
+    private val worldload = command<Player>("worldload") {
+        permission = "chunkworld.admin"
         booleans { bool ->
-            arg("世界名"){ worldname->
+            arg("世界名") { worldname ->
                 exec {
-                    if (valueOf(bool)){
+                    if (valueOf(bool)) {
                         val world = Bukkit.createWorld(WorldCreator(valueOf(worldname)))
-                        if (world == null){
+                        if (world == null) {
                             sender.sendMessage("§c世界加载失败")
                             return@exec
                         }
                         sender.teleportAsync(world.spawnLocation)
-                    }else{
+                    } else {
                         //卸载
                         val world = Bukkit.getWorld(valueOf(worldname))
-                        if (world == null){
+                        if (world == null) {
                             sender.sendMessage("§c世界没加载")
                             return@exec
                         }
@@ -356,8 +383,10 @@ object GroupCommand {
             }
         }
     }
+
     @CommandBody
-    val reload = command<CommandSender>("reload"){
+    val reload = command<CommandSender>("reload") {
+        permission = "chunkworld.admin"
         exec {
             ChunkWorld.inst.reloadConfig()
             sender.sendMessage("§a重载配置文件成功,仅针对宝箱配置可重载")

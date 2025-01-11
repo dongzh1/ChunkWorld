@@ -1,28 +1,17 @@
 package com.dongzh1.chunkworld.basic
 
-import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.plugins.fawe
-import com.dongzh1.chunkworld.redis.RedisManager
 import com.xbaimiao.easylib.ui.PaperBasic
-import com.xbaimiao.easylib.util.*
-import me.arcaniax.hdb.api.HeadDatabaseAPI
+import com.xbaimiao.easylib.util.buildItem
+import com.xbaimiao.easylib.util.takeItem
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
-import org.bukkit.*
-import org.bukkit.block.Skull
+import org.bukkit.Bukkit
+import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
-import org.bukkit.inventory.meta.SkullMeta
-import org.bukkit.persistence.PersistentDataType
-import java.io.File
 import java.time.Duration
-import java.util.*
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.random.Random
 
 class CopyGui(private val p: Player) {
     fun build(meta: ItemMeta) {
@@ -48,30 +37,31 @@ class CopyGui(private val p: Player) {
         }))
         basic.onClick(30) {
             p.closeInventory()
-            if (p.inventory.takeItem(matcher = {itemMeta == meta})){
+            if (p.inventory.takeItem(matcher = { itemMeta == meta })) {
                 //把区块所有的容器替换为空气
                 fawe.replaceExclude(p.chunk)
                 //保存为模板文件
-                val fileName = fawe.savePlayerSchem(p.chunk,p)
-                if (fileName == null){
+                val fileName = fawe.savePlayerSchem(p.chunk, p)
+                if (fileName == null) {
                     p.sendMessage("§c保存失败")
                     //返还物品
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                        "neigeitems giveSilent ${p.name} 拓印画布 1")
+                    Bukkit.dispatchCommand(
+                        Bukkit.getConsoleSender(),
+                        "neigeitems giveSilent ${p.name} 拓印画布 1"
+                    )
                     return@onClick
                 }
                 //石化
                 fawe.replaceEx(p.chunk)
                 //给玩家复制后的物品
-                p.inventory.addItem(Item.copyItemUsed(fileName,p))
+                p.inventory.addItem(Item.copyItemUsed(fileName, p))
                 p.showTitle(
                     Title.title(
                         Component.text("§a已成功拓印"), Component.text("§f请回到你的梦境世界使用"),
                         Times.times(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofSeconds(1))
                     )
                 )
-            }
-            else {
+            } else {
                 p.sendMessage("§c你没有足够的物品")
             }
         }

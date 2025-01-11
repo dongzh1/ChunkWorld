@@ -1,10 +1,8 @@
 import com.xbaimiao.easylib.task.EasyLibTask
 import com.xbaimiao.easylib.util.submit
-import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Particle
-import org.bukkit.scheduler.BukkitRunnable
-import java.util.UUID
+import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -14,7 +12,7 @@ object ParticleEffect {
     private val taskList = mutableMapOf<UUID, EasyLibTask>()
 
     // 启动粒子循环效果并返回效果ID,center是方块坐标，要偏移
-    fun startCircleEffect(center: Location,radius: Double,count:Int, particle: Particle): UUID {
+    fun startCircleEffect(center: Location, radius: Double, count: Int, particle: Particle): UUID {
         val id = UUID.randomUUID()
         val list = mutableListOf<Location>()
         val world = center.world
@@ -29,10 +27,10 @@ object ParticleEffect {
             list.add(Location(world, x + xOffset, y, z + zOffset))
         }
         val task = submit(delay = 0, period = 2) {
-            if (center.chunk.isLoaded){
+            if (center.chunk.isLoaded) {
                 // 播放粒子
-                list.forEach { center.world?.spawnParticle(particle, it , count,0.0,0.0,0.0,0.0) }
-            }else{
+                list.forEach { center.world?.spawnParticle(particle, it, count, 0.0, 0.0, 0.0, 0.0) }
+            } else {
                 cancel()
                 taskList.remove(id)
             }

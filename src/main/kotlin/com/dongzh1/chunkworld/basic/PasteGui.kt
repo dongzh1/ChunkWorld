@@ -1,30 +1,22 @@
 package com.dongzh1.chunkworld.basic
 
-import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.plugins.fawe
-import com.dongzh1.chunkworld.redis.RedisManager
 import com.xbaimiao.easylib.ui.PaperBasic
-import com.xbaimiao.easylib.util.*
-import me.arcaniax.hdb.api.HeadDatabaseAPI
+import com.xbaimiao.easylib.util.buildItem
+import com.xbaimiao.easylib.util.takeItem
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.title.Title
 import net.kyori.adventure.title.Title.Times
-import org.bukkit.*
-import org.bukkit.block.Skull
+import org.bukkit.Location
+import org.bukkit.Material
+import org.bukkit.World
 import org.bukkit.entity.Player
 import org.bukkit.inventory.meta.ItemMeta
-import org.bukkit.inventory.meta.SkullMeta
-import org.bukkit.persistence.PersistentDataType
 import java.io.File
 import java.time.Duration
-import java.util.*
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.random.Random
 
 class PasteGui(private val p: Player) {
-    fun build(schem:File,meta: ItemMeta) {
+    fun build(schem: File, meta: ItemMeta) {
         val basic = PaperBasic(p, Component.text("拓印画布-§e具现"))
         //设置菜单大小为行
         basic.rows(4)
@@ -47,30 +39,29 @@ class PasteGui(private val p: Player) {
         }))
         basic.onClick(30) {
             p.closeInventory()
-            if (p.inventory.takeItem(matcher = {itemMeta == meta})){
+            if (p.inventory.takeItem(matcher = { itemMeta == meta })) {
                 //粘贴区块
                 val chunk = p.chunk
                 val world = p.world
-                val pos1: Location = if (world.environment == World.Environment.NORMAL){
+                val pos1: Location = if (world.environment == World.Environment.NORMAL) {
                     Location(world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
-                }else if (world.environment == World.Environment.NETHER){
+                } else if (world.environment == World.Environment.NETHER) {
                     Location(world, chunk.x * 16.toDouble(), 0.0, chunk.z * 16.toDouble())
-                }else {
+                } else {
                     p.sendMessage("§c未知的世界环境")
                     return@onClick
                 }
                 chunk.entities.filter { it !is Player }.forEach {
                     it.remove()
                 }
-                fawe.placeSchem(schem,pos1)
+                fawe.placeSchem(schem, pos1)
                 p.showTitle(
                     Title.title(
                         Component.text("§a区块拓印成功"), Component.text("§f你的梦境你做主"),
                         Times.times(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofSeconds(1))
                     )
                 )
-            }
-            else {
+            } else {
                 p.sendMessage("§c你没有足够的物品")
             }
         }

@@ -139,19 +139,25 @@ class RedisListener : JedisPubSub() {
         MainListener.addUnloadWorld(world)
         if (world.players.isNotEmpty()) {
             world.players.forEach {
-                if (it.teleport(ChunkWorld.spawnLocation)){
+                if (it.teleport(ChunkWorld.spawnLocation)) {
                     if (it.uniqueId.toString() != world.name.split("/").last())
                         it.sendMessage("§c世界主人已离线，世界关闭")
-                }else{
-                    val name = world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_owner")!!, PersistentDataType.STRING)
+                } else {
+                    val name = world.persistentDataContainer.get(
+                        NamespacedKey.fromString("chunkworld_owner")!!,
+                        PersistentDataType.STRING
+                    )
                     it.kick(Component.text("$name 的世界未正常卸载，请您重新进入游戏"))
                 }
             }
         }
-        if (world.players.isNotEmpty()){
-            val name = world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_owner")!!, PersistentDataType.STRING)!!
+        if (world.players.isNotEmpty()) {
+            val name = world.persistentDataContainer.get(
+                NamespacedKey.fromString("chunkworld_owner")!!,
+                PersistentDataType.STRING
+            )!!
             val worldInfo = RedisManager.getWorldInfo(name)!!
-            RedisManager.setWorldInfo(name,worldInfo,true)
+            RedisManager.setWorldInfo(name, worldInfo, true)
         }
         //卸载世界
         val success = Bukkit.unloadWorld(world, true)

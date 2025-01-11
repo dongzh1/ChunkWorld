@@ -7,6 +7,7 @@ data class WorldInfo(
     val serverName: String,
     val showWorld: Boolean
 )
+
 data class ServerInfo(
     val serverName: String,
     val serverTps: Double,

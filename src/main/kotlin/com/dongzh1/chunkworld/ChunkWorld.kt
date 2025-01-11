@@ -35,16 +35,16 @@ class ChunkWorld : EasyPlugin() {
 
     private var redisListener: RedisListener? = null
     private lateinit var subscribeTask: EasyLibTask
-    private lateinit var pushServerInfoTask : EasyLibTask
+    private lateinit var pushServerInfoTask: EasyLibTask
 
     override fun onLoad() {
         super.onLoad()
         saveDefaultConfig()
         //清除过期的数据,玩家的存储模板文件夹
         val playerTemplesWorlds = File("/home/pixelServer/playerTemples/world")
-            .listFiles()?.filter {!it.isDirectory && it.name.endsWith(".schem") }?: emptyList<File>()
+            .listFiles()?.filter { !it.isDirectory && it.name.endsWith(".schem") } ?: emptyList<File>()
         val playerTemplesNether = File("/home/pixelServer/playerTemples/nether")
-            .listFiles()?.filter {!it.isDirectory && it.name.endsWith(".schem") }?: emptyList<File>()
+            .listFiles()?.filter { !it.isDirectory && it.name.endsWith(".schem") } ?: emptyList<File>()
         val playerTemples = playerTemplesWorlds + playerTemplesNether
         playerTemples.forEach {
             val time = it.name.replace(".schem", "").split("_").last()
@@ -109,7 +109,7 @@ class ChunkWorld : EasyPlugin() {
         registerCommand(GroupCommand)
         Papi.register()
         PapiChunkWorld.register()
-        pushServerInfoTask = submit(async = true, delay = 20*30, period = 20) {
+        pushServerInfoTask = submit(async = true, delay = 20 * 30, period = 20) {
             RedisPush.pushWorldInfo()
         }
     }

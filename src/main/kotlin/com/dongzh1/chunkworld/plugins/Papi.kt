@@ -4,13 +4,40 @@ import com.xbaimiao.easylib.bridge.PlaceholderExpansion
 import org.bukkit.OfflinePlayer
 import kotlin.math.abs
 
-object Papi: PlaceholderExpansion() {
+object Papi : PlaceholderExpansion() {
     private val sizeMap = mapOf(
-        1 to "", 2 to "", 3 to "", 4 to "", 5 to "", 6 to "", 7 to "", 15 to "", 31 to "", 63 to "", 127 to "", 256 to "", 512 to "", 1024 to "",
-        -3 to "", -4 to "", -5 to "", -6 to "", -7 to "", -8 to "", -9 to "", -10 to "", -18 to "", -34 to "", -66 to "", -130 to "", -259 to "", -515 to "", -1027 to ""
+        1 to "",
+        2 to "",
+        3 to "",
+        4 to "",
+        5 to "",
+        6 to "",
+        7 to "",
+        15 to "",
+        31 to "",
+        63 to "",
+        127 to "",
+        256 to "",
+        512 to "",
+        1024 to "",
+        -3 to "",
+        -4 to "",
+        -5 to "",
+        -6 to "",
+        -7 to "",
+        -8 to "",
+        -9 to "",
+        -10 to "",
+        -18 to "",
+        -34 to "",
+        -66 to "",
+        -130 to "",
+        -259 to "",
+        -515 to "",
+        -1027 to ""
     )
 
-        /**
+    /**
      * 定义一个只读属性 identifier，用于标识插件的名称
      */
     override val identifier: String

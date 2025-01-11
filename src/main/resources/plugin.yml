@@ -8,7 +8,7 @@ api-version: "1.20"
 folia-supported: false
 update-info: # inject
 depend-list: # inject
-depend: [ WorldEdit, HeadDatabase, FancyHolograms]
+depend: [ WorldEdit, HeadDatabase ]
 softdepend:
   - InvSync
 relocate: # inject

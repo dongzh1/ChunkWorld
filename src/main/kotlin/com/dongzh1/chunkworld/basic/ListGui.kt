@@ -2,7 +2,6 @@ package com.dongzh1.chunkworld.basic
 
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.redis.RedisManager
-import com.xbaimiao.easylib.bridge.replacePlaceholder
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.buildItem
 import net.kyori.adventure.text.Component
@@ -16,13 +15,13 @@ class ListGui(private val p: Player) {
     private val playSlots = listOf(19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43)
     private val worldInfoList = RedisManager.getShowWorldInfo()
 
-    private fun buildLocal() {
+    fun buildLocal() {
         val basic = build()
         basic.set(49, buildItem(Material.PAPER, builder = {
             customModelData = 300003
             name = "§7目前显示本服的玩家世界"
             lore.add("§7点击切换为相互信任的世界")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 切换列表")
         }))
         basic.onClick(49) {
@@ -67,7 +66,7 @@ class ListGui(private val p: Player) {
             customModelData = 300003
             name = "§7目前显示相互信任的世界"
             lore.add("§7点击切换为全服展示世界")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 切换列表")
         }))
         basic.onClick(49) {
@@ -113,7 +112,7 @@ class ListGui(private val p: Player) {
             customModelData = 300003
             name = "§7目前显示全服展示世界"
             lore.add("§7点击切换为本服玩家世界")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 切换列表")
         }))
         basic.onClick(49) {
@@ -184,7 +183,7 @@ class ListGui(private val p: Player) {
         }))
         basic.onClick(8) { p.closeInventory() }
         basic.set(17, buildItem(Material.PAPER, builder = {
-            customModelData = 300010
+            customModelData = 300012
             name = "§f빪 §x§1§9§c§a§a§d➠ 返回上级菜单"
         }))
         basic.onClick(17) {
@@ -193,7 +192,7 @@ class ListGui(private val p: Player) {
         basic.set(2, buildItem(Material.TOTEM_OF_UNDYING, builder = {
             name = "§7成为§b赞助者"
             lore.add("§7即可向全服展示你的世界")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 查看赞助者权益")
         }))
         basic.onClick(2) {

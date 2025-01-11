@@ -2,6 +2,7 @@ package com.dongzh1.chunkworld.basic
 
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.command.Tp
+import com.xbaimiao.easylib.bridge.replacePlaceholder
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.buildItem
 import net.kyori.adventure.text.Component
@@ -9,6 +10,38 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 
 class MainGui(private val p: Player) {
+    fun build1() {
+        val basic = PaperBasic(p, Component.text("§f像素物语"))
+        basic.rows(6)
+        basic.onClick { it.isCancelled = true }
+        basic.set(8, buildItem(Material.PAPER, builder = {
+            customModelData = 300006
+            name = "§f빪 §x§1§9§c§a§a§d➠ 关闭菜单"
+        }))
+        basic.onClick(8) { p.closeInventory() }
+        //通过权限判断应该打开哪个菜单，用于新手教程
+        when ("%luckperms_meta_newplayer%".replacePlaceholder(p)) {
+            "1" -> {
+                basic.set(11, buildItem(Material.END_CRYSTAL, builder = {
+                    name = "§7前往§d梦之城"
+                    lore.add("§7梦之城的来历已无人可知")
+                    lore.add("§7梦境生物都能感受到祂的存在")
+                    lore.add("§7虽然梦之城的好似永远在移动")
+                    lore.add("§7但通过点击此按钮可链接到梦之城")
+                    lore.add("§f빪 §x§1§9§c§a§a§d➠ 传送到主城")
+                }))
+                basic.onClick(11) {
+                    p.closeInventory()
+                    p.teleportAsync(ChunkWorld.spawnLocation)
+                }
+            }
+
+            "2" -> {
+
+            }
+        }
+    }
+
     fun build() {
         val basic = PaperBasic(p, Component.text("§f像素物语"))
         basic.rows(6)
@@ -21,7 +54,7 @@ class MainGui(private val p: Player) {
         basic.set(11, buildItem(Material.END_CRYSTAL, builder = {
             name = "§7回到主城"
             lore.add("§7主城是提升自己的好地方")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 传送到主城")
         }))
         basic.onClick(11) {
@@ -33,7 +66,7 @@ class MainGui(private val p: Player) {
             skullOwner = p.name
             name = "§7你的私人世界"
             lore.add("§7世界可扩展至无限大")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 传送到你的世界")
         }))
         basic.onClick(13) {
@@ -43,18 +76,18 @@ class MainGui(private val p: Player) {
         basic.set(15, buildItem(Material.PAINTING, builder = {
             name = "§7世界展示列表"
             lore.add("§7查看他人展示的世界")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 查看世界展示")
         }))
         basic.onClick(15) {
             p.closeInventory()
-            ListGui(p).buildRedis(1)
+            ListGui(p).buildLocal()
         }
         basic.set(21, buildItem(Material.PAPER, builder = {
             customModelData = 300001
             name = "§7设置你的独立世界"
             lore.add("§7传送点、出生点、世界规则等")
-            lore.add("")
+            lore.add(" ")
             if (p.world.name == "chunkworlds/world/${p.uniqueId}" || p.world.name == "chunkworlds/world/${p.uniqueId}_nether") {
                 lore.add("§f빪 §x§1§9§c§a§a§d➠ 浏览世界设置页面")
                 basic.onClick(21) {
@@ -69,7 +102,7 @@ class MainGui(private val p: Player) {
             customModelData = 300002
             name = "§7与他人共享家园"
             lore.add("§7或者拉黑他人")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 浏览人员设置界面")
         }))
         basic.onClick(23) {
@@ -99,7 +132,7 @@ class MainGui(private val p: Player) {
             lore.add("§7如果感到卡顿或想和朋友一起玩")
             lore.add("§7可以尝试切换服务器")
             lore.add("§7当前服务器:${ChunkWorld.serverName}")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 切换服务器")
         }))
         basic.onClick(48) {
@@ -111,7 +144,7 @@ class MainGui(private val p: Player) {
             lore.add("§7在登录大厅重新选择服务器")
             lore.add("§7可将你的世界在新选择的服务器加载")
             lore.add("§7当前服务器:${ChunkWorld.serverName}")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 返回登录大厅")
         }))
         basic.onClick(50) {

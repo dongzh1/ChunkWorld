@@ -1,5 +1,6 @@
 package com.dongzh1.chunkworld.basic
 
+import ParticleEffect
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.plugins.fawe
@@ -15,7 +16,6 @@ import org.bukkit.block.Skull
 import org.bukkit.entity.Player
 import org.bukkit.inventory.meta.SkullMeta
 import org.bukkit.persistence.PersistentDataType
-import java.io.File
 import java.time.Duration
 import kotlin.math.abs
 import kotlin.math.max
@@ -39,10 +39,10 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
             name = "§3生成梦境区块详情"
             lore.add("§f距离初始区块越远的区块等级越高")
             lore.add("§f这是 §f$chunkLevel 级区块")
-            if (chunk.world.environment == World.Environment.NORMAL){
+            if (chunk.world.environment == World.Environment.NORMAL) {
                 customModelData = 300008
                 lore.add("§f消耗 §b$chunkLevel §f个§6世界碎片§f来生成区块")
-            }else {
+            } else {
                 customModelData = 300009
                 lore.add("§f消耗 §b$chunkLevel §f个§6地狱碎片§f来生成区块")
             }
@@ -66,28 +66,29 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
                 val schemPair = fawe.getRandomSchem(worldisNormal)
                 val schem = schemPair.second!!
                 val xiyoudu = schemPair.first
-                val schemShow = removeNumbersFromString(schem.name).replace(".schem","")
+                val schemShow = removeNumbersFromString(schem.name).replace(".schem", "")
                 //将模板粘贴到玩家世界,确定粘贴点，最小点
-                val pos1:Location
-                if (worldisNormal){
+                val pos1: Location
+                if (worldisNormal) {
                     pos1 = Location(chunk.world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
-                }else{
+                } else {
                     pos1 = Location(chunk.world, chunk.x * 16.toDouble(), 0.0, chunk.z * 16.toDouble())
                 }
                 //复制模板
-                fawe.placeSchem(schem,pos1)
+                fawe.placeSchem(schem, pos1)
                 //生成宝藏
                 submit {
                     val config =
-                        if (worldisNormal){
+                        if (worldisNormal) {
                             ChunkWorld.inst.config.getConfigurationSection("Baoxiang.world")!!
-                        }else{
+                        } else {
                             ChunkWorld.inst.config.getConfigurationSection("Baoxiang.nether")!!
                         }
                     val block = chunk.getBlock(
                         Random.nextInt(3, 13),
                         Random.nextInt(config.getInt("Ymin"), config.getInt("Ymax")),
-                        Random.nextInt(3, 13))
+                        Random.nextInt(3, 13)
+                    )
                     //清理周围的方块，形成一个3*3*3的空间
                     for (x in -1..1) {
                         for (y in 0..2) {
@@ -106,19 +107,21 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
                     val head = hdb.getItemHead("59124").itemMeta as SkullMeta
                     meta.ownerProfile = head.playerProfile
                     //把头颅信息保存好，便于监听,并播放粒子
-                    val pUUID = ParticleEffect.startCircleEffect(block.location,1.0,5,Particle.WITCH)
+                    val pUUID = ParticleEffect.startCircleEffect(block.location, 1.0, 5, Particle.WITCH)
                     meta.persistentDataContainer.set(
                         NamespacedKey.fromString("baozang")!!,
-                        PersistentDataType.STRING,pUUID.toString())
+                        PersistentDataType.STRING, pUUID.toString()
+                    )
                     block.chunk.persistentDataContainer.set(
                         NamespacedKey.fromString("baozang_location")!!,
-                        PersistentDataType.STRING,"${block.x},${block.y},${block.z}")
+                        PersistentDataType.STRING, "${block.x},${block.y},${block.z}"
+                    )
                     meta.update()
                     //发送宝箱的某个坐标
                     var x = "???"
                     var y = "???"
                     var z = "???"
-                    when(Random.nextInt(3)){
+                    when (Random.nextInt(3)) {
                         0 -> x = block.x.toString()
                         1 -> y = block.y.toString()
                         2 -> z = block.z.toString()
@@ -171,17 +174,21 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
         if (chunk.world.environment == World.Environment.NORMAL) {
             if (p.inventory.hasItem(
                     amount = chunkLevel,
-                    matcher = { type == Material.PAPER
-                            && itemMeta.hasCustomModelData()
-                            && itemMeta.customModelData == 300008
-                            && hasLore("§c已绑定${p.name}") })
+                    matcher = {
+                        type == Material.PAPER
+                                && itemMeta.hasCustomModelData()
+                                && itemMeta.customModelData == 300008
+                                && hasLore("§c已绑定${p.name}")
+                    })
             ) {
                 p.inventory.takeItem(
                     amount = chunkLevel,
-                    matcher = { type == Material.PAPER
-                            && itemMeta.hasCustomModelData()
-                            && itemMeta.customModelData == 300008
-                            && hasLore("§c已绑定${p.name}") })
+                    matcher = {
+                        type == Material.PAPER
+                                && itemMeta.hasCustomModelData()
+                                && itemMeta.customModelData == 300008
+                                && hasLore("§c已绑定${p.name}")
+                    })
                 return true
             } else {
                 return false
@@ -189,23 +196,28 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
         } else {
             if (p.inventory.hasItem(
                     amount = chunkLevel,
-                    matcher = { type == Material.PAPER
-                            && itemMeta.hasCustomModelData()
-                            && itemMeta.customModelData == 300009
-                            && hasLore("§c已绑定${p.name}") })
+                    matcher = {
+                        type == Material.PAPER
+                                && itemMeta.hasCustomModelData()
+                                && itemMeta.customModelData == 300009
+                                && hasLore("§c已绑定${p.name}")
+                    })
             ) {
                 p.inventory.takeItem(
                     amount = chunkLevel,
-                    matcher = { type == Material.PAPER
-                            && itemMeta.hasCustomModelData()
-                            && itemMeta.customModelData == 300009
-                            && hasLore("§c已绑定${p.name}") })
+                    matcher = {
+                        type == Material.PAPER
+                                && itemMeta.hasCustomModelData()
+                                && itemMeta.customModelData == 300009
+                                && hasLore("§c已绑定${p.name}")
+                    })
                 return true
             } else {
                 return false
             }
         }
     }
+
     private fun record() {
         submit(async = true) {
             val world = chunk.world
@@ -235,6 +247,7 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
             }
         }
     }
+
     fun removeNumbersFromString(input: String): String {
         // 使用正则表达式匹配数字并替换为空字符串
         return input.replace(Regex("\\d"), "")

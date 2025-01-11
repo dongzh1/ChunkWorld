@@ -2,7 +2,6 @@ package com.dongzh1.chunkworld.basic
 
 import com.dongzh1.chunkworld.ChunkWorld
 import com.xbaimiao.easylib.bridge.replacePlaceholder
-import com.xbaimiao.easylib.util.MapItem
 import com.xbaimiao.easylib.util.buildItem
 import com.xbaimiao.easylib.util.hasItem
 import com.xbaimiao.easylib.util.takeItem
@@ -16,6 +15,7 @@ import java.time.format.DateTimeFormatter
 
 object Item {
     val menuItem = menuItem()
+
     /**
      * 区块清除道具
      */
@@ -59,6 +59,7 @@ object Item {
             lore.add("§f被其他玩家邀请传送到末地也会消耗")
         })
     }
+
     /**
      * 菜单
      */
@@ -68,10 +69,11 @@ object Item {
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 打开菜单")
         })
     }
+
     /**
      * 拓印画布
      */
-    fun copyItemUsed(schemName:String,p:Player): ItemStack {
+    fun copyItemUsed(schemName: String, p: Player): ItemStack {
         // 获取当前时间
         val currentTime = LocalDateTime.now()
         // 定义格式化样式
@@ -91,7 +93,7 @@ object Item {
         })
         val meta = i.itemMeta
         val pdc = meta.persistentDataContainer
-        pdc.set(NamespacedKey(ChunkWorld.inst, "schem"), PersistentDataType.STRING,schemName)
+        pdc.set(NamespacedKey(ChunkWorld.inst, "schem"), PersistentDataType.STRING, schemName)
         i.itemMeta = meta
         return i
 

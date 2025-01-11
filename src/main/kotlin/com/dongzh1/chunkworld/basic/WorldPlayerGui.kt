@@ -19,7 +19,7 @@ class WorldPlayerGui(private val p: Player, private val world: World, private va
         }))
         basic.onClick(8) { p.closeInventory() }
         basic.set(17, buildItem(Material.PAPER, builder = {
-            customModelData = 300010
+            customModelData = 300012
             name = "§f빪 §x§1§9§c§a§a§d➠ 返回上级菜单"
         }))
         basic.onClick(17) {

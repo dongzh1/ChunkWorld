@@ -72,7 +72,6 @@ dependencies {
             implementation(it.id)
         }
     }
-    compileOnly("de.oliver:FancyHolograms:2.4.0")
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     compileOnly(kotlin("stdlib-jdk8"))
     compileOnly("de.tr7zw:item-nbt-api-plugin:2.13.1")

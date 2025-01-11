@@ -51,7 +51,7 @@ object WorldEdit {
     }
 
     fun setVoid(chunk: Chunk) {
-        if (chunk.world.environment == World.Environment.NORMAL){
+        if (chunk.world.environment == World.Environment.NORMAL) {
             val pos1 = Location(chunk.world, chunk.x * 16.toDouble(), -64.0, chunk.z * 16.toDouble())
             val pos2 = Location(chunk.world, chunk.x * 16.toDouble() + 15, 319.0, chunk.z * 16.toDouble() + 15)
             TaskManager.taskManager().async {
@@ -69,7 +69,7 @@ object WorldEdit {
                     session.setBlocks(region as Region, BlockTypes.AIR!!.defaultState)
                 }
             }
-        }else{
+        } else {
             val pos1 = Location(chunk.world, chunk.x * 16.toDouble(), 0.0, chunk.z * 16.toDouble())
             val pos2 = Location(chunk.world, chunk.x * 16.toDouble() + 15, 255.0, chunk.z * 16.toDouble() + 15)
             TaskManager.taskManager().async {
@@ -306,25 +306,27 @@ object WorldEdit {
     }
 
     private fun addItems(chunk: Chunk, p: Player) {
-        fun getAmount(amountString: String):Int{
-            return if (amountString.contains("-")){
+        fun getAmount(amountString: String): Int {
+            return if (amountString.contains("-")) {
                 val min = amountString.split("-")[0].toInt()
                 val max = amountString.split("-")[1].toInt()
-                Random.nextInt(min,max+1)
-            }else{
+                Random.nextInt(min, max + 1)
+            } else {
                 amountString.toInt()
             }
         }
         submit {
             val config =
-                if (chunk.world.environment == World.Environment.NORMAL){
+                if (chunk.world.environment == World.Environment.NORMAL) {
                     ChunkWorld.inst.config.getConfigurationSection("Baoxiang.world")!!
-                }else{
+                } else {
                     ChunkWorld.inst.config.getConfigurationSection("Baoxiang.nether")!!
                 }
-            val block = chunk.getBlock(Random.nextInt(3, 13),
+            val block = chunk.getBlock(
+                Random.nextInt(3, 13),
                 Random.nextInt(config.getInt("Ymin"), config.getInt("Ymax")),
-                Random.nextInt(3, 13))
+                Random.nextInt(3, 13)
+            )
             //清理周围的方块，形成一个3*3*3的空间
             for (x in -1..1) {
                 for (y in 0..2) {
@@ -343,13 +345,15 @@ object WorldEdit {
             val head = hdb.getItemHead("59124").itemMeta as SkullMeta
             meta.ownerProfile = head.playerProfile
             //把头颅信息保存好，便于监听,并播放粒子
-            val pUUID = ParticleEffect.startCircleEffect(block.location,1.0,5,Particle.WITCH)
+            val pUUID = ParticleEffect.startCircleEffect(block.location, 1.0, 5, Particle.WITCH)
             meta.persistentDataContainer.set(
                 NamespacedKey.fromString("baozang")!!,
-                PersistentDataType.STRING,pUUID.toString())
+                PersistentDataType.STRING, pUUID.toString()
+            )
             block.chunk.persistentDataContainer.set(
                 NamespacedKey.fromString("baozang_location")!!,
-                PersistentDataType.STRING,"${block.x},${block.y},${block.z}")
+                PersistentDataType.STRING, "${block.x},${block.y},${block.z}"
+            )
             meta.update()
         }
     }

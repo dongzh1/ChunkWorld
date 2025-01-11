@@ -1,10 +1,10 @@
 package com.dongzh1.chunkworld.command
 
+import ParticleEffect
 import com.dongzh1.chunkworld.ChunkWorld
-import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.database.dao.WorldInfo
 import com.dongzh1.chunkworld.listener.MainListener
-import com.dongzh1.chunkworld.plugins.fawe
+import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.dongzh1.chunkworld.redis.RedisManager
 import com.dongzh1.chunkworld.redis.RedisPush
 import com.xbaimiao.easylib.skedule.SynchronizationContext
@@ -33,7 +33,8 @@ object Tp {
         worldInfoRedis[name]?.cancel()
         worldInfoRedis.remove(name)
     }
-    fun removeAllWorldInfo(){
+
+    fun removeAllWorldInfo() {
         val names = worldInfoRedis.keys.toMutableList()
         names.forEach {
             RedisManager.removeWorldInfo(it)
@@ -166,13 +167,15 @@ object Tp {
                 val head = hdb.getItemHead("59124").itemMeta as SkullMeta
                 meta.ownerProfile = head.playerProfile
                 //把头颅信息保存好，便于监听,并播放粒子
-                val pUUID = ParticleEffect.startCircleEffect(block.location,1.0,5,Particle.WITCH)
+                val pUUID = ParticleEffect.startCircleEffect(block.location, 1.0, 5, Particle.WITCH)
                 meta.persistentDataContainer.set(
                     NamespacedKey.fromString("baozang")!!,
-                    PersistentDataType.STRING,pUUID.toString())
+                    PersistentDataType.STRING, pUUID.toString()
+                )
                 block.chunk.persistentDataContainer.set(
                     NamespacedKey.fromString("baozang_location")!!,
-                    PersistentDataType.STRING,"${block.x},${block.y},${block.z}")
+                    PersistentDataType.STRING, "${block.x},${block.y},${block.z}"
+                )
                 meta.update()
                 switchContext(SynchronizationContext.ASYNC)
                 //存储一些重要信息
@@ -192,7 +195,7 @@ object Tp {
                     NamespacedKey.fromString("chunkworld_owner")!!,
                     PersistentDataType.STRING, name
                 )
-            }else if(!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_state")!!)){
+            } else if (!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_state")!!)) {
                 //说明是继承的世界
                 world.setGameRule(GameRule.KEEP_INVENTORY, true)
                 world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS, 0)
@@ -325,13 +328,17 @@ object Tp {
         world.save()
         val worldInfo = RedisManager.getWorldInfo(p.name)
         worldInfo!!.netherChunks = 1
-        RedisManager.setWorldInfo(p.name,worldInfo)
+        RedisManager.setWorldInfo(p.name, worldInfo)
         p.teleportAsync(world.spawnLocation)
     }
 
     private fun getWorldInfo(world: World, netherWorld: World?, perm: Boolean): WorldInfo {
-        if (!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_state")!!)){
-            world.persistentDataContainer.set(NamespacedKey.fromString("chunkworld_state")!!, PersistentDataType.BYTE, 2.toByte())
+        if (!world.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_state")!!)) {
+            world.persistentDataContainer.set(
+                NamespacedKey.fromString("chunkworld_state")!!,
+                PersistentDataType.BYTE,
+                2.toByte()
+            )
         }
         val state =
             world.persistentDataContainer.get(NamespacedKey.fromString("chunkworld_state")!!, PersistentDataType.BYTE)!!

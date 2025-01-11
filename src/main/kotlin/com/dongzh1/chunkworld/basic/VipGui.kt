@@ -21,7 +21,7 @@ class VipGui(private val p: Player) {
             lore.add("§7权益列表:")
             lore.add("§f专属称号:§8[§b赞助者§8]")
             lore.add("§f全服世界展示")
-            lore.add("")
+            lore.add(" ")
             lore.add("§f请联系群主进行赞助")
             lore.add("§f10RMB/月")
         }))

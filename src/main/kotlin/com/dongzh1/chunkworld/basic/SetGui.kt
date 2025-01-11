@@ -26,7 +26,7 @@ class SetGui(val p: Player) {
         val worldInfo = RedisManager.getWorldInfo(p.name)!!
         basic.set(4, buildItem(Material.PAINTING, builder = {
             name = "世界信息"
-            lore.add("")
+            lore.add(" ")
             lore.add("§f已解锁主世界区块: §a${worldInfo.normalChunks}")
             lore.add("§f已解锁地狱区块: §4${worldInfo.netherChunks}")
         }))
@@ -36,7 +36,7 @@ class SetGui(val p: Player) {
         }))
         basic.onClick(8) { p.closeInventory() }
         basic.set(17, buildItem(Material.PAPER, builder = {
-            customModelData = 300010
+            customModelData = 300012
             name = "§f빪 §x§1§9§c§a§a§d➠ 返回上级菜单"
         }))
         basic.onClick(17) {

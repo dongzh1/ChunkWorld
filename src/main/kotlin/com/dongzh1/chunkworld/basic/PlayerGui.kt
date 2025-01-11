@@ -24,7 +24,7 @@ class PlayerGui(private val p: Player, private val banPage: Int) {
         }))
         basic.onClick(8) { p.closeInventory() }
         basic.set(17, buildItem(Material.PAPER, builder = {
-            customModelData = 300010
+            customModelData = 300012
             name = "§f빪 §x§1§9§c§a§a§d➠ 返回上级菜单"
         }))
         basic.onClick(17) {
@@ -32,13 +32,13 @@ class PlayerGui(private val p: Player, private val banPage: Int) {
         }
         basic.set(10, buildItem(Material.SKELETON_SKULL, builder = {
             name = "信任玩家"
-            lore.add("")
+            lore.add(" ")
             lore.add("§f右侧是和你共享世界的玩家")
             lore.add("§f你们可以相互在对方世界破坏和建造")
         }))
         basic.set(22, buildItem(Material.WITHER_SKELETON_SKULL, builder = {
             name = "拉黑玩家"
-            lore.add("")
+            lore.add(" ")
             lore.add("§f下方是和你双向拉黑的玩家")
             lore.add("§f你们无法进入对方的世界")
         }))

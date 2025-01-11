@@ -70,7 +70,12 @@ object RedisPush {
     fun cancelFriend(targetName: String, playerName: String, playerUUID: UUID) {
         push("cancelFriend|,|$targetName|,|$playerName|,|${playerUUID}")
     }
-    fun pushWorldInfo(){
-        push("pushWorldInfo|,|${ChunkWorld.serverName}|,|${Bukkit.getTPS().first()}|,|${Bukkit.getPort()}|,|${Bukkit.getOnlinePlayers().size}|,|${System.currentTimeMillis()}")
+
+    fun pushWorldInfo() {
+        push(
+            "pushWorldInfo|,|${ChunkWorld.serverName}|,|${
+                Bukkit.getTPS().first()
+            }|,|${Bukkit.getPort()}|,|${Bukkit.getOnlinePlayers().size}|,|${System.currentTimeMillis()}"
+        )
     }
 }
