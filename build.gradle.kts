@@ -76,7 +76,7 @@ dependencies {
     compileOnly(kotlin("stdlib-jdk8"))
     compileOnly("de.tr7zw:item-nbt-api-plugin:2.13.1")
     compileOnly("com.arcaniax:HeadDatabase-API:1.3.2")
-    compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
     //compileOnly("org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT")
     compileOnly(fileTree("libs"))
 }

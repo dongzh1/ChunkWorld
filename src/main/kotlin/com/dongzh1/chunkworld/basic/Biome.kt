@@ -71,7 +71,7 @@ object Biome {
                 JAGGED_PEAKS -> "锯齿山峰"
                 STONY_PEAKS -> "石质山峰"
                 CHERRY_GROVE -> "樱花林地"
-                CUSTOM -> "自定义"
+                else -> "未知"
             }
         }
 }

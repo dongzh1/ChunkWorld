@@ -27,14 +27,16 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
         val basic = PaperBasic(p, Component.text("生成梦境区块"))
         val chunkLevel = max(abs(chunk.x), abs(chunk.z))
 
-
+        Bukkit.getConsoleSender().sendMessage("test1")
         //设置菜单大小为行
         basic.rows(4)
         //取消全局点击事件
         basic.onClick { event ->
+            Bukkit.getConsoleSender().sendMessage("test2")
             event.isCancelled = true
         }
         basic.set(13, buildItem(Material.PAPER, builder = {
+            Bukkit.getConsoleSender().sendMessage("test3")
             amount = chunkLevel
             name = "§3生成梦境区块详情"
             lore.add("§f距离初始区块越远的区块等级越高")
@@ -49,10 +51,12 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
             lore.add("§4选择 §a确认 §4后碎片将无法退回")
         }))
         basic.set(30, buildItem(Material.LIME_CONCRETE, builder = {
+            Bukkit.getConsoleSender().sendMessage("test4")
             name = "§a确认"
             lore.add("§4确认后扣除碎片")
         }))
         basic.onClick(30) {
+            Bukkit.getConsoleSender().sendMessage("test5")
             p.closeInventory()
             if (deduct()) {
                 //扣除成功
@@ -158,18 +162,22 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
             }
         }
         basic.set(32, buildItem(Material.RED_CONCRETE, builder = {
+            Bukkit.getConsoleSender().sendMessage("test6")
             name = "§c取消"
         }))
         basic.onClick(32) {
             p.closeInventory()
         }
+        Bukkit.getConsoleSender().sendMessage("test10")
         basic.openAsync()
+        Bukkit.getConsoleSender().sendMessage("test11")
     }
 
     /**
      * 从玩家背包判断是否有足够的指定物品，如果有就扣除并返回true,没有就返回false
      */
     private fun deduct(): Boolean {
+        Bukkit.getConsoleSender().sendMessage("test7")
         val chunkLevel = max(abs(chunk.x), abs(chunk.z))
         if (chunk.world.environment == World.Environment.NORMAL) {
             if (p.inventory.hasItem(
@@ -219,7 +227,9 @@ class ConfirmExpandGui(private val p: Player, private val chunk: Chunk) {
     }
 
     private fun record() {
+        Bukkit.getConsoleSender().sendMessage("test8")
         submit(async = true) {
+            Bukkit.getConsoleSender().sendMessage("test9")
             val world = chunk.world
             val chunkListString = world.persistentDataContainer.get(
                 NamespacedKey.fromString("chunkworld_chunks")!!,
