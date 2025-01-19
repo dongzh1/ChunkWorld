@@ -112,9 +112,11 @@ class MainGui(private val p: Player) {
         }
         basic.set(29, buildItem(Material.GRASS_BLOCK, builder = {
             name = "§a神明梦境-主世界"
-            lore.add("§f这个世界因强大的神灵沉睡而诞生")
-            lore.add("§f")
-            lore.add("§f随机传送到资源世界")
+            lore.add("§f这个世界因强大神灵沉睡而诞生")
+            lore.add("§f探索神明梦境可以获得大量资源")
+            lore.add("§f但因为其不稳定性,不可在此建造和放置物品")
+            lore.add("§f神明梦境随时可能被毁灭,请小心")
+            lore.add("§f点击 随机传送到 神明梦境-主世界")
         }))
         basic.onClick(29) {
             p.closeInventory()
@@ -122,8 +124,12 @@ class MainGui(private val p: Player) {
             Tp.randomTp(p,world,20000)
         }
         basic.set(31, buildItem(Material.MAGMA_BLOCK, builder = {
-            name = "§4资源地狱"
-            lore.add("§f随机传送到资源地狱世界")
+            name = "§c神明梦境-下界地狱"
+            lore.add("§f这个世界因强大神灵沉睡而诞生")
+            lore.add("§f探索神明梦境可以获得大量资源")
+            lore.add("§f但因为其不稳定性,不可在此建造和放置物品")
+            lore.add("§f神明梦境随时可能被毁灭,请小心")
+            lore.add("§f点击 随机传送到 神明梦境-下界地狱")
         }))
         basic.onClick(31) {
             p.closeInventory()
@@ -131,11 +137,17 @@ class MainGui(private val p: Player) {
             Tp.randomTp(p,world,20000)
         }
         basic.set(33, buildItem(Material.END_STONE, builder = {
-            name = "§5资源末地"
-            lore.add("§f随机传送到资源末地世界")
+            name = "§5神明梦境-末路之地"
+            lore.add("§f这个世界因强大神灵沉睡而诞生")
+            lore.add("§f探索神明梦境可以获得大量资源")
+            lore.add("§f但因为其不稳定性,不可在此建造和放置物品")
+            lore.add("§f神明梦境随时可能被毁灭,请小心")
+            lore.add("§f点击 随机传送到 神明梦境-末路之地")
         }))
         basic.onClick(33) {
-
+            p.closeInventory()
+            val world = Bukkit.getWorld("world_the_end")?:return@onClick
+            Tp.randomTp(p,world,50)
         }
         basic.set(48, buildItem(Material.SCULK_SENSOR, builder = {
             name = "§7切换服务器"
