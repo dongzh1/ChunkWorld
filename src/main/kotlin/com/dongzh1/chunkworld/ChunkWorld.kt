@@ -11,6 +11,7 @@ import com.dongzh1.chunkworld.redis.RedisConfig
 import com.dongzh1.chunkworld.redis.RedisListener
 import com.dongzh1.chunkworld.redis.RedisPush
 import com.xbaimiao.easylib.EasyPlugin
+import com.xbaimiao.easylib.bridge.economy.Vault
 import com.xbaimiao.easylib.command.registerCommand
 import com.xbaimiao.easylib.task.EasyLibTask
 import com.xbaimiao.easylib.util.plugin
@@ -31,6 +32,7 @@ class ChunkWorld : EasyPlugin() {
         lateinit var serverName: String
         const val CHANNEL = "ChunkWorld"
         lateinit var spawnLocation: Location
+        val Vault = Vault()
     }
 
     private var redisListener: RedisListener? = null

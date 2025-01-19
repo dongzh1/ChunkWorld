@@ -26,8 +26,8 @@ object ParticleEffect {
             val zOffset = radius * sin(angle)
             list.add(Location(world, x + xOffset, y, z + zOffset))
         }
-        val task = submit(delay = 0, period = 2) {
-            if (center.chunk.isLoaded) {
+        val task = submit(delay = 60, period = 2) {
+            if (center.world != null && center.chunk.isLoaded) {
                 // 播放粒子
                 list.forEach { center.world?.spawnParticle(particle, it, count, 0.0, 0.0, 0.0, 0.0) }
             } else {

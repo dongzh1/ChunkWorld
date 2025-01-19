@@ -65,13 +65,14 @@ class ListGui(private val p: Player) {
         basic.set(49, buildItem(Material.PAPER, builder = {
             customModelData = 300003
             name = "§7目前显示相互信任的世界"
-            lore.add("§7点击切换为全服展示世界")
+            lore.add("§7点击切换为本服玩家世界")
             lore.add(" ")
             lore.add("§f빪 §x§1§9§c§a§a§d➠ 切换列表")
         }))
         basic.onClick(49) {
             p.closeInventory()
-            buildRedis(1)
+            buildLocal()
+            //buildRedis(1)
         }
         val playerDao = ChunkWorld.db.getPlayerDao(p.name)!!
         val trusts = ChunkWorld.db.getTrustNames(playerDao.id)
@@ -189,6 +190,7 @@ class ListGui(private val p: Player) {
         basic.onClick(17) {
             MainGui(p).build()
         }
+        /*
         basic.set(2, buildItem(Material.TOTEM_OF_UNDYING, builder = {
             name = "§7成为§b赞助者"
             lore.add("§7即可向全服展示你的世界")
@@ -199,6 +201,8 @@ class ListGui(private val p: Player) {
             p.closeInventory()
             VipGui(p).build()
         }
+
+         */
         basic.set(4, buildItem(Material.PAPER, builder = {
             customModelData = 300007
             name = "§7活动专属空位"

@@ -4,9 +4,9 @@ import ParticleEffect
 import com.dongzh1.chunkworld.ChunkWorld
 import com.dongzh1.chunkworld.basic.*
 import com.dongzh1.chunkworld.command.Tp
-import com.dongzh1.chunkworld.plugins.WorldEdit
 import com.xbaimiao.easylib.bridge.replacePlaceholder
 import com.xbaimiao.easylib.util.hasLore
+import com.xbaimiao.easylib.util.plugin
 import com.xbaimiao.easylib.util.submit
 import com.xbaimiao.easylib.util.takeItem
 import net.kyori.adventure.text.Component
@@ -20,11 +20,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockFromToEvent
-import org.bukkit.event.block.BlockPlaceEvent
-import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.bukkit.event.entity.EntityExplodeEvent
-import org.bukkit.event.entity.EntityPortalEnterEvent
-import org.bukkit.event.entity.EntityTargetLivingEntityEvent
+import org.bukkit.event.entity.*
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.player.*
 import org.bukkit.event.vehicle.VehicleDamageEvent
@@ -58,6 +54,8 @@ object MainListener : Listener {
     //private val respawn = mutableMapOf<Player, Location>()
     private fun isInTrustedWorld(player: Player): Boolean {
         if (player.world.name == "chunkworlds/world/${player.uniqueId}" || player.world.name == "chunkworlds/nether/${player.uniqueId}") return true
+        //没在家园世界
+        if (!player.world.name.contains("chunkworlds/")) return false
         val world = if (player.world.name.contains("/nether/")) Bukkit.getWorld(
             player.world.name.replace(
                 "/nether/",
@@ -214,73 +212,76 @@ object MainListener : Listener {
         }
     }
 
-    @EventHandler
-    fun onBlockPlaced(e: BlockPlaceEvent) {
-        if (e.itemInHand.itemMeta == Item.voidItem().itemMeta) {
-            //判断所放位置在不在已拓展的区块内
-            val isInChunks =
-                e.blockPlaced.chunk.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_unlock")!!)
-            if (!isInChunks) {
-                e.isCancelled = true
-                e.player.sendMessage("§c请在已拓展的区块内放置")
-                return
+    /*
+        @EventHandler
+        fun onBlockPlaced(e: BlockPlaceEvent) {
+            if (e.itemInHand.itemMeta == Item.voidItem().itemMeta) {
+                //判断所放位置在不在已拓展的区块内
+                val isInChunks =
+                    e.blockPlaced.chunk.persistentDataContainer.has(NamespacedKey.fromString("chunkworld_unlock")!!)
+                if (!isInChunks) {
+                    e.isCancelled = true
+                    e.player.sendMessage("§c请在已拓展的区块内放置")
+                    return
+                }
+                //放置下虚空生成器了
+                val blockState = e.blockPlaced.state
+                val location = e.blockPlaced.location
+                var n = 0
+                submit(delay = 1, period = 20, maxRunningNum = 11) {
+                    //道具被毁
+                    if (location.block.state != blockState) {
+                        cancel()
+                        e.player.showTitle(
+                            Title.title(
+                                Component.text("§d生成器破坏"),
+                                Component.text("§a虚空化改造已停止"),
+                                Title.Times.times(
+                                    Duration.ofSeconds(1),
+                                    Duration.ofSeconds(2),
+                                    Duration.ofSeconds(1)
+                                )
+                            )
+                        )
+                        return@submit
+                    }
+                    if (n < 10) {
+                        e.player.showTitle(
+                            Title.title(
+                                Component.text("§4\uD83D\uDCA5§c虚空吞噬一切§4\uD83D\uDCA5"),
+                                Component.text("§a ${10 - n} 秒后缔造虚空,若想取消请用锄头§4破坏§a生成器!"),
+                                Title.Times.times(
+                                    Duration.ofSeconds(1),
+                                    Duration.ofSeconds(2),
+                                    Duration.ofSeconds(1)
+                                )
+                            )
+                        )
+                    }
+                    if (n == 10) {
+                        e.player.showTitle(
+                            Title.title(
+                                Component.text("§c结束了"),
+                                Component.text("§a虚空已吞噬区块"),
+                                Title.Times.times(
+                                    Duration.ofSeconds(1),
+                                    Duration.ofSeconds(2),
+                                    Duration.ofSeconds(1)
+                                )
+                            )
+                        )
+                        WorldEdit.setVoid(e.blockPlaced.chunk)
+                    }
+                    n++
+                }
+                //放置虚空生成器
+
             }
-            //放置下虚空生成器了
-            val blockState = e.blockPlaced.state
-            val location = e.blockPlaced.location
-            var n = 0
-            submit(delay = 1, period = 20, maxRunningNum = 11) {
-                //道具被毁
-                if (location.block.state != blockState) {
-                    cancel()
-                    e.player.showTitle(
-                        Title.title(
-                            Component.text("§d生成器破坏"),
-                            Component.text("§a虚空化改造已停止"),
-                            Title.Times.times(
-                                Duration.ofSeconds(1),
-                                Duration.ofSeconds(2),
-                                Duration.ofSeconds(1)
-                            )
-                        )
-                    )
-                    return@submit
-                }
-                if (n < 10) {
-                    e.player.showTitle(
-                        Title.title(
-                            Component.text("§4\uD83D\uDCA5§c虚空吞噬一切§4\uD83D\uDCA5"),
-                            Component.text("§a ${10 - n} 秒后缔造虚空,若想取消请用锄头§4破坏§a生成器!"),
-                            Title.Times.times(
-                                Duration.ofSeconds(1),
-                                Duration.ofSeconds(2),
-                                Duration.ofSeconds(1)
-                            )
-                        )
-                    )
-                }
-                if (n == 10) {
-                    e.player.showTitle(
-                        Title.title(
-                            Component.text("§c结束了"),
-                            Component.text("§a虚空已吞噬区块"),
-                            Title.Times.times(
-                                Duration.ofSeconds(1),
-                                Duration.ofSeconds(2),
-                                Duration.ofSeconds(1)
-                            )
-                        )
-                    )
-                    WorldEdit.setVoid(e.blockPlaced.chunk)
-                }
-                n++
-            }
-            //放置虚空生成器
 
         }
 
-    }
 
+     */
     @EventHandler
     fun onInteract(e: PlayerInteractEvent) {
         val p = e.player
@@ -418,11 +419,27 @@ object MainListener : Listener {
                 }
             }
         }
-        //玩家不在梦境世界就不管
-        if (!p.world.name.contains("chunkworlds/")) return
+        //玩家不在梦境世界也不在主城就不管
+        if (!world.name.contains("chunkworlds/")) return
+        //主城单独处理
+        //todo
+        /*
+        if (world.name == "world") {
+        //破坏农作物和矿物可行，且会掉落
+            if(e.action == Action.LEFT_CLICK_BLOCK){
+                when(block!!.type){
+
+                }
+            }else {
+                e.isCancelled = true
+                return
+            }
+        }
+
+         */
 
         val chunk1 = block?.chunk
-        //在世界世界和屏障交互
+        //和屏障交互
         if (block?.type == org.bukkit.Material.BARRIER) {
             //如果是世界主人，可以拓展世界
             e.isCancelled = true
@@ -656,13 +673,13 @@ object MainListener : Listener {
             p.performCommand("chunkworld tp")
             return
         }
-        if (!p.world.name.startsWith("chunkworlds/")) {
+        if (!p.world.name.contains("chunkworlds/")) {
+            //不是家园世界，不许使用传送门
             p.showTitle(
                 Title.title(
-                    Component.text("§d请使用邀请函"), Component.text("§f在菜单使用邀请函进行传送"),
-                    Title.Times.times(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(1))
-                )
-            )
+                    Component.text("§c无法传送"), Component.text("§f请使用菜单传送"),
+                    Title.Times.times(Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(1))
+                ))
         }
         if (p.world.name == "chunkworlds/world/${p.uniqueId}") {
             val nether = Bukkit.getWorld(p.world.name.replace("/world/", "/nether/"))
@@ -709,28 +726,77 @@ object MainListener : Listener {
                 val world = Bukkit.getWorld(p.world.name.replace("/nether/", "/world/"))!!
                 p.teleportAsync(world.spawnLocation)
             }
-            //别人家
-
         }
 
     }
 
-    /*
-    /**
-     * 玩家死亡重生,在自己世界死就在自己世界生
-     */
-    @EventHandler(priority = EventPriority.HIGHEST)
+    // 玩家死亡惩罚
+    @EventHandler
     fun death(e: PlayerDeathEvent) {
         val p = e.player
-        if (p.world.name == "chunkworlds/world/${p.uniqueId}" || p.world.name == "chunkworlds/nether/${p.uniqueId}") {
-            val world = p.world
-            val location = world.spawnLocation
-            respawn[p] = location
+        val pdc = p.persistentDataContainer
+        val times: Int
+        if (pdc.has(NamespacedKey.fromString("deathTimes", plugin)!!)) {
+            val oldTimes = pdc.get(NamespacedKey.fromString("deathTimes", plugin)!!, PersistentDataType.INTEGER)!!
+            pdc.set(NamespacedKey.fromString("deathTimes", plugin)!!, PersistentDataType.INTEGER, oldTimes + 1)
+            times = oldTimes + 1
+        } else {
+            pdc.set(NamespacedKey.fromString("deathTimes", plugin)!!, PersistentDataType.INTEGER, 1)
+            times = 1
         }
-        submit(delay = 60) { respawn.remove(p) }
+        if (times <= 10){
+            val msg = Component.text("<red>这是您第 $times 次死亡,您还有 ${10-times} 次死亡无惩罚的机会</red>").appendNewline()
+                .append(Component.text("<red>将身上携带的金钱存入银行可避免死亡惩罚</red>").appendNewline())
+                .append(Component.text("<red>每次死亡后随身携带的金钱将会损失 10% 作为复活的代价</red>"))
+            p.sendMessage(msg)
+        }else if(times <= 20){
+            val msg = Component.text("<red>这是您第 $times 次死亡,您将被扣除 10% 身上携带的金钱</red>").appendNewline()
+               .append(Component.text("<red>将身上携带的金钱存入银行可避免死亡惩罚</red>").appendNewline())
+                .append(Component.text("<red>当你死亡超过 20 次时,你将会损失 20% 身上携带的金钱</red>"))
+            p.sendMessage(msg)
+            val allMoney = ChunkWorld.Vault[p]
+            val money = (allMoney * 0.1).toInt()
+            ChunkWorld.Vault.take(p,money.toDouble())
+            p.sendMessage("§4您的死亡使您遗失了 §e$money§f뻗")
+        }else if(times <= 30){
+            val msg = Component.text("<red>这是您第 $times 次死亡,您将被扣除 20% 身上携带的金钱</red>").appendNewline()
+              .append(Component.text("<red>将身上携带的金钱存入银行可避免死亡惩罚</red>").appendNewline())
+                .append(Component.text("<red>当你死亡超过 30 次时,你将会损失 30% 身上携带的金钱</red>"))
+            p.sendMessage(msg)
+            val allMoney = ChunkWorld.Vault[p]
+            val money = (allMoney * 0.2).toInt()
+            ChunkWorld.Vault.take(p,money.toDouble())
+            p.sendMessage("§4您的死亡使您遗失了 §e$money§f뻗")
+        }else if(times <= 40){
+            val msg = Component.text("<red>这是您第 $times 次死亡,您将被扣除 30% 身上携带的金钱</red>").appendNewline()
+             .append(Component.text("<red>将身上携带的金钱存入银行可避免死亡惩罚</red>").appendNewline())
+                .append(Component.text("<red>当你死亡超过 40 次时,你将会损失 40% 身上携带的金钱</red>"))
+            p.sendMessage(msg)
+            val allMoney = ChunkWorld.Vault[p]
+            val money = (allMoney * 0.3).toInt()
+            ChunkWorld.Vault.take(p,money.toDouble())
+            p.sendMessage("§4您的死亡使您遗失了 §e$money§f뻗")
+        }else if(times <= 50){
+            val msg = Component.text("<red>这是您第 $times 次死亡,您将被扣除 40% 身上携带的金钱</red>").appendNewline()
+            .append(Component.text("<red>将身上携带的金钱存入银行可避免死亡惩罚</red>").appendNewline())
+               .append(Component.text("<red>当你死亡超过 50 次时,你将会损失 50% 身上携带的金钱</red>"))
+            p.sendMessage(msg)
+            val allMoney = ChunkWorld.Vault[p]
+            val money = (allMoney * 0.4).toInt()
+            ChunkWorld.Vault.take(p,money.toDouble())
+            p.sendMessage("§4您的死亡使您遗失了 §e$money§f뻗")
+        }else{
+            val msg = Component.text("<red>这是您第 $times 次死亡,您将被扣除 50% 身上携带的金钱</red>").appendNewline()
+           .append(Component.text("<red>将身上携带的金钱存入银行可避免死亡惩罚</red>").appendNewline())
+            p.sendMessage(msg)
+            val allMoney = ChunkWorld.Vault[p]
+            val money = (allMoney * 0.5).toInt()
+            ChunkWorld.Vault.take(p,money.toDouble())
+            p.sendMessage("§4您的死亡使您遗失了 §e$money§f뻗")
+        }
+
     }
 
-     */
 
     /**
      * 玩家重生事件，只要玩家世界加载了，就在玩家世界重生

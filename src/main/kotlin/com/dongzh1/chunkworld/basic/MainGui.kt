@@ -6,6 +6,7 @@ import com.xbaimiao.easylib.bridge.replacePlaceholder
 import com.xbaimiao.easylib.ui.PaperBasic
 import com.xbaimiao.easylib.util.buildItem
 import net.kyori.adventure.text.Component
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 
@@ -62,7 +63,7 @@ class MainGui(private val p: Player) {
             p.teleportAsync(ChunkWorld.spawnLocation)
         }
         basic.set(13, buildItem(Material.PLAYER_HEAD, builder = {
-            customModelData = 10006
+            customModelData = 10000
             skullOwner = p.name
             name = "§7你的私人世界"
             lore.add("§7世界可扩展至无限大")
@@ -110,23 +111,32 @@ class MainGui(private val p: Player) {
             PlayerGui(p, 1).build()
         }
         basic.set(29, buildItem(Material.GRASS_BLOCK, builder = {
-            name = "§a资源世界"
+            name = "§a神明梦境-主世界"
+            lore.add("§f这个世界因强大的神灵沉睡而诞生")
+            lore.add("§f")
             lore.add("§f随机传送到资源世界")
-            lore.add("§f使用条件:")
-            lore.add("§c暂不可用,等待后续更新")
         }))
+        basic.onClick(29) {
+            p.closeInventory()
+            val world = Bukkit.getWorld("chunkworld")?:return@onClick
+            Tp.randomTp(p,world,20000)
+        }
         basic.set(31, buildItem(Material.MAGMA_BLOCK, builder = {
             name = "§4资源地狱"
             lore.add("§f随机传送到资源地狱世界")
-            lore.add("§f使用条件:")
-            lore.add("§c暂不可用,等待后续更新")
         }))
+        basic.onClick(31) {
+            p.closeInventory()
+            val world = Bukkit.getWorld("world_nether")?:return@onClick
+            Tp.randomTp(p,world,20000)
+        }
         basic.set(33, buildItem(Material.END_STONE, builder = {
             name = "§5资源末地"
-            lore.add("§f随机传送到资源地狱世界")
-            lore.add("§f使用条件:")
-            lore.add("§c暂不可用,等待后续更新")
+            lore.add("§f随机传送到资源末地世界")
         }))
+        basic.onClick(33) {
+
+        }
         basic.set(48, buildItem(Material.SCULK_SENSOR, builder = {
             name = "§7切换服务器"
             lore.add("§7如果感到卡顿或想和朋友一起玩")

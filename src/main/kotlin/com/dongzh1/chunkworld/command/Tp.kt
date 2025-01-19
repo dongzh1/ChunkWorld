@@ -144,7 +144,6 @@ object Tp {
                 future.apply { complete(false) }
                 return@launchCoroutine
             }
-            switchContext(SynchronizationContext.ASYNC)
             //设置世界规则等
             world.isAutoSave = true
             if (isFirst) {
@@ -154,7 +153,6 @@ object Tp {
                 world.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS, false)
                 world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true)
                 //这里是第一次加载，通过worldedit插件复制屏障到占领的区块边缘
-                switchContext(SynchronizationContext.SYNC)
                 WorldEdit.setBarrier(
                     setOf(world.spawnLocation.chunk.x to world.spawnLocation.chunk.z),
                     world.spawnLocation.chunk.x to world.spawnLocation.chunk.z,
@@ -177,7 +175,6 @@ object Tp {
                     PersistentDataType.STRING, "${block.x},${block.y},${block.z}"
                 )
                 meta.update()
-                switchContext(SynchronizationContext.ASYNC)
                 //存储一些重要信息
                 world.persistentDataContainer.set(
                     NamespacedKey.fromString("chunkworld_chunks")!!,
@@ -225,15 +222,12 @@ object Tp {
                 banString
             )
             //存储世界
-            switchContext(SynchronizationContext.SYNC)
             world.save()
-            switchContext(SynchronizationContext.ASYNC)
             if (hasNether) {
                 //加载地狱。创建另有方法
                 val netherName = "chunkworlds/nether/$playerUUID"
                 val netherWc =
                     WorldCreator(netherName).environment(World.Environment.NETHER).keepSpawnLoaded(TriState.FALSE)
-                switchContext(SynchronizationContext.SYNC)
                 val nether = netherWc.createWorld()
                 if (nether == null) {
                     future.apply { complete(false) }
